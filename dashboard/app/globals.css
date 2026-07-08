@@ -1,0 +1,252 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   HALON design tokens
+   Near-black canvas + one loud lime. Everything else grayscale.
+   Red is reserved exclusively for failure / discharge states.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --color-ink: #050705;
+  --color-ink-2: #080b07;
+  --color-surface: #0d110c;
+  --color-surface-2: #131811;
+  --color-surface-3: #1a2117;
+  --color-line: #1f2b1c;
+  --color-line-soft: #161f14;
+
+  --color-mist: #9ba89b;
+  --color-mist-dim: #6a756a;
+
+  --color-lime: #7bf04e;
+  --color-lime-soft: #a9ff85;
+  --color-lime-deep: #45b527;
+  --color-lime-ink: #04170a;
+
+  --color-danger: #ff5f56;
+  --color-danger-dim: #4a1f1c;
+  --color-warn: #ffc247;
+  --color-info: #6ee7ff;
+
+  --animate-marquee: marquee 44s linear infinite;
+  --animate-marquee-rev: marquee-rev 44s linear infinite;
+  --animate-flow: flow 2.4s linear infinite;
+  --animate-flow-slow: flow 4s linear infinite;
+  --animate-pulse-ring: pulse-ring 2.8s ease-out infinite;
+  --animate-float: float 8s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-blink: blink 1.6s step-end infinite;
+  --animate-spin-slow: spin 26s linear infinite;
+  --animate-scan: scan 7s linear infinite;
+  --animate-rise: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-drift: drift 18s ease-in-out infinite;
+}
+
+@theme inline {
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes marquee-rev {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+/* dashed stroke crawling along an SVG path — "capital moving" */
+@keyframes flow {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.72); opacity: 0.55; }
+  70% { transform: scale(1.9); opacity: 0; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(2%, -3%, 0) scale(1.06); }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+@keyframes scan {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10%, 90% { opacity: 1; }
+  100% { transform: translateY(2000%); opacity: 0; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background-color: var(--color-ink);
+    color: #e8ede8;
+    font-family: var(--font-sans);
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-lime-ink);
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--color-ink); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-surface-3);
+    border-radius: 999px;
+    border: 2px solid var(--color-ink);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #2b3626; }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+    font-weight: 600;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-lime);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* the card surface used everywhere */
+  .panel {
+    position: relative;
+    border-radius: 1rem;
+    border: 1px solid var(--color-line);
+    background-color: var(--color-surface);
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(255, 255, 255, 0.008)
+    );
+  }
+  /* hairline top highlight — what makes a dark card read as glass */
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(123, 240, 78, 0.35), transparent);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+  .panel-flat {
+    border-radius: 1rem;
+    border: 1px solid var(--color-line);
+    background-color: var(--color-surface);
+  }
+}
+
+@layer utilities {
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(123, 240, 78, 0.055) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(123, 240, 78, 0.055) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  .grid-bg-sm {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .dot-bg {
+    background-image: radial-gradient(rgba(123, 240, 78, 0.14) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  .glow-lime {
+    box-shadow:
+      0 0 0 1px rgba(123, 240, 78, 0.25),
+      0 0 32px -6px rgba(123, 240, 78, 0.45),
+      0 0 90px -30px rgba(123, 240, 78, 0.7);
+  }
+  .glow-lime-sm {
+    box-shadow: 0 0 22px -8px rgba(123, 240, 78, 0.8);
+  }
+  .glow-danger-sm {
+    box-shadow: 0 0 22px -8px rgba(255, 95, 86, 0.8);
+  }
+  .text-glow {
+    text-shadow: 0 0 28px rgba(123, 240, 78, 0.45);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  .mask-fade-y {
+    mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent);
+  }
+  .mask-fade-x {
+    mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  }
+  .mask-fade-b {
+    mask-image: linear-gradient(to bottom, black 55%, transparent);
+  }
+  /* film grain so flat black doesn't band on OLED */
+  .noise::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .shimmer-text {
+    background-image: linear-gradient(90deg, #6a756a 0%, #ffffff 45%, #6a756a 60%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: var(--animate-shimmer);
+  }
+  .stripe-lime {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(123, 240, 78, 0.14) 0 6px,
+      transparent 6px 12px
+    );
+  }
+  .stripe-danger {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 95, 86, 0.16) 0 6px,
+      transparent 6px 12px
+    );
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

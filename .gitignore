@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.local
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+contracts/lib/
+dist/
+.DS_Store
+
+# dashboard (Next.js)
+.next/
+dashboard/.next/
+dashboard/out/
+next-env.d.ts
+*.tsbuildinfo
