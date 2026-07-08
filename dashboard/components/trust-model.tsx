@@ -95,14 +95,15 @@ function InheritedCard() {
 
       <CardFooter>
         <pre
-          className="no-scrollbar neu-inset overflow-x-auto rounded-xl p-3 font-mono text-[0.625rem] leading-[1.9] whitespace-pre text-mist-dim"
+          className="no-scrollbar neu-inset overflow-x-auto rounded-xl p-3 font-mono text-[0.5625rem] leading-[1.9] whitespace-pre text-mist-dim"
         >
           <code>
-            {"creating → created → paying → paid → delivering → completed\n"}
-            {"                                              ↘ "}
+            {"creating → created → paying → paid\n"}
+            {"         → delivering → completed\n"}
+            {"                     ↘ "}
             <span className="text-danger">rejected</span>
             {"\n"}
-            {"                                              ↘ "}
+            {"                     ↘ "}
             <span className="text-danger">expired</span>
           </code>
         </pre>
@@ -198,7 +199,7 @@ export function TrustModel() {
       title="What you're trusting, stated plainly."
       lead="Most of this is enforced by contracts. One part is not, and we would rather tell you than have you find it."
     >
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3">
         {CARDS.map((CardContent, i) => (
           <Reveal key={i} delay={i * 90} className="h-full">
             <CardContent />

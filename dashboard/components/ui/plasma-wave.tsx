@@ -155,7 +155,7 @@ export default function PlasmaWave(props: PlasmaWaveProps) {
     try {
       renderer = new Renderer({
         alpha: true,
-        dpr: Math.min(window.devicePixelRatio, 1.5),
+        dpr: Math.min(window.devicePixelRatio, window.innerWidth < 640 ? 1 : 1.5),
         antialias: false,
         depth: false,
         stencil: false,

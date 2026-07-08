@@ -80,10 +80,6 @@ function HeroBackdrop() {
       {/* Everything above this line is decoration; everything below is legibility. */}
       <div className="hero-scrim absolute inset-0" />
 
-      <div className="grid-bg mask-fade-b absolute inset-0 opacity-60" />
-
-      <div className="absolute inset-x-0 top-0 h-px w-full animate-scan bg-gradient-to-r from-transparent via-lime/40 to-transparent" />
-
       <div
         className="absolute inset-0"
         style={{

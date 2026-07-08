@@ -431,7 +431,8 @@ export function QuoteEngine() {
         </Reveal>
 
         {/* ── RIGHT: results ─────────────────────────────────── */}
-        <div className="flex flex-col gap-6">
+        {/* min-w-0: the curve chart is `min-w-[520px]` behind a scroller. */}
+        <div className="flex min-w-0 flex-col gap-6">
           {/* A — premium */}
           <Reveal delay={60}>
             <div className="panel relative overflow-hidden p-6">

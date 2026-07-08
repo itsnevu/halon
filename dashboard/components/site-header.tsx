@@ -80,15 +80,22 @@ export function SiteHeader() {
 
   return (
     <>
-      <header
-        className={cn(
-          "sticky top-0 z-50 border-b transition-colors duration-300",
-          scrolled
-            ? "border-line bg-ink/70 backdrop-blur-xl"
-            : "border-transparent bg-transparent",
-        )}
-      >
-        <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 md:h-[4.5rem]">
+      <header className="pointer-events-none sticky top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-4">
+        <div className="pointer-events-auto relative isolate mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 rounded-full px-4 sm:px-6 md:h-16">
+          {/* The pill lives on its own layer so the blur, the border and the cast
+              shadow all arrive together on a single opacity transition. A filter
+              cannot be transitioned into existence, but the layer carrying it can
+              be faded in. At rest this paints nothing: no border, no blur, no bg.
+              `isolate` on the parent keeps `-z-10` from falling behind the page. */}
+          <div
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute inset-0 -z-10 rounded-full border border-line bg-ink/70",
+              "shadow-[0_20px_60px_-24px_rgba(0,0,0,0.95)] backdrop-blur-xl",
+              "transition-opacity duration-500 ease-out",
+              scrolled ? "opacity-100" : "opacity-0",
+            )}
+          />
           {/* left */}
           <div className="flex items-center gap-3">
             <a
@@ -142,8 +149,11 @@ export function SiteHeader() {
 
           <button
             type="button"
-            onClick={() => setOpen(true)}
-            aria-label="Open menu"
+            // A real toggle. It reports `aria-expanded`, so it has to be able to
+            // collapse what it expanded — `setOpen(true)` left it announcing
+            // "expanded" under the label "Open menu", doing nothing when pressed.
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             aria-controls="site-menu"
             className={cn(triggerClass, "lg:hidden")}

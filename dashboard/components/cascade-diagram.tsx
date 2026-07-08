@@ -390,7 +390,8 @@ export function CascadeDiagram() {
         onBlur={() => setPaused(false)}
       >
         {/* ── Diagram ─────────────────────────────────────────── */}
-        <Reveal>
+        {/* min-w-0: let the track shrink so the inner scroller can do its job. */}
+        <Reveal className="min-w-0">
           <div className="panel p-4 sm:p-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div

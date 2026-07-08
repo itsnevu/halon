@@ -140,8 +140,8 @@ function AgentIdentity({ agent }: { agent: Agent }) {
 function Derivation() {
   const kw = "text-mist-dim";
   return (
-    <div className="neu-inset rounded-2xl p-4 font-mono text-xs text-mist">
-      <pre className="no-scrollbar overflow-x-auto whitespace-pre">
+    <div className="neu-inset rounded-2xl p-4 font-mono text-[0.625rem] text-mist sm:text-xs">
+      <pre className="no-scrollbar overflow-x-auto whitespace-pre-wrap break-words sm:whitespace-pre sm:break-normal">
         <code>
           <span className={kw}>{"// there is no getMeritScore()\n"}</span>
           <span className={kw}>{"const"}</span>
