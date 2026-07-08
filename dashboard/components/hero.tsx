@@ -1,34 +1,41 @@
 import { Fragment } from "react";
 
-import { StatusDot } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { PROTOCOL_STATS } from "@/lib/data";
 import { secondsLabel, usdCompact } from "@/lib/format";
+import { INK, LIME, MINT } from "@/lib/brand";
+import PlasmaWave from "@/components/ui/plasma-wave";
 
 /* ── Background ───────────────────────────────────────────────── */
 
 /**
- * Two lime orbs bleeding through the headline. The outer element owns the
+ * Two orbs bleeding through the headline — one at each end of the brand ramp,
+ * so the backdrop reads like the mark it sits under. The outer element owns the
  * position (Tailwind translate utilities) and the inner element owns the
  * `drift` animation — keyframes write `transform`, so they cannot share a node.
+ *
+ * `tint` is an inline colour rather than a `bg-*` class: the ramp lives in
+ * `lib/brand.ts`, and hardcoding `bg-lime` here is how the two drifted apart.
  */
 function Orb({
   className,
   size,
   opacity,
   delay,
+  tint,
 }: {
   className: string;
   size: string;
   opacity: number;
   delay: string;
+  tint: string;
 }) {
   return (
     <div className={className} style={{ width: size, height: size }}>
       <div
-        className="size-full animate-drift rounded-full bg-lime blur-[120px]"
-        style={{ opacity, animationDelay: delay }}
+        className="size-full animate-drift rounded-full blur-[120px]"
+        style={{ opacity, animationDelay: delay, backgroundColor: tint }}
       />
     </div>
   );
@@ -37,18 +44,41 @@ function Orb({
 function HeroBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+      {/* Backmost layer. Transparent wherever the shader discards, so every layer
+          below still reads through it. 80% keeps it a backdrop, not a subject. */}
+      <div className="absolute inset-0 opacity-80">
+        <PlasmaWave
+          colors={[LIME, MINT]}
+          speed1={0.05}
+          speed2={0.05}
+          focalLength={0.8}
+          bend1={1}
+          bend2={0.5}
+          dir2={1}
+          rotationDeg={0}
+        />
+      </div>
+
+      {/* Static two-tone wash under the moving orbs: lime up-left, mint down-right. */}
+      <div className="aurora absolute inset-0" />
+
       <Orb
         className="absolute top-[34%] left-1/2 -translate-x-[78%] -translate-y-1/2"
         size="clamp(280px, 42vw, 620px)"
         opacity={0.16}
         delay="0s"
+        tint={LIME}
       />
       <Orb
         className="absolute top-[46%] left-1/2 -translate-x-[26%] -translate-y-1/2"
         size="clamp(280px, 38vw, 560px)"
         opacity={0.12}
         delay="-7s"
+        tint={MINT}
       />
+
+      {/* Everything above this line is decoration; everything below is legibility. */}
+      <div className="hero-scrim absolute inset-0" />
 
       <div className="grid-bg mask-fade-b absolute inset-0 opacity-60" />
 
@@ -57,8 +87,7 @@ function HeroBackdrop() {
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "radial-gradient(120% 82% at 50% 34%, transparent 0%, transparent 42%, rgba(5,7,5,0.62) 76%, #050705 100%)",
+          background: `radial-gradient(120% 82% at 50% 34%, transparent 0%, transparent 42%, rgba(0,0,0,0.62) 76%, ${INK} 100%)`,
         }}
       />
     </div>
@@ -182,25 +211,16 @@ export function Hero() {
       <HeroBackdrop />
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-5 text-center sm:px-8">
-        <Reveal>
-          <span className="inline-flex items-center gap-2.5 rounded-full border border-line bg-ink/60 px-3.5 py-1.5 backdrop-blur">
-            <StatusDot tone="lime" />
-            <span className="font-mono text-[0.6875rem] tracking-[0.14em] text-mist uppercase">
-              Suppression armed · Live on Base
-            </span>
-          </span>
-        </Reveal>
-
         <Reveal delay={80}>
-          <h1 className="mt-8 font-display text-[clamp(2.6rem,8.4vw,7.5rem)] leading-[0.92] font-semibold tracking-[-0.045em] text-balance text-white">
+          <h1 className="text-shield font-display text-[clamp(2.6rem,8.4vw,7.5rem)] leading-[0.92] font-semibold tracking-[-0.045em] text-balance text-white">
             Agents insure agents<span className="text-lime">.</span>
           </h1>
         </Reveal>
 
         <Reveal delay={140}>
-          <p className="mx-auto mt-7 max-w-2xl text-[clamp(1rem,1.6vw,1.2rem)] leading-relaxed text-pretty text-mist">
+          <p className="text-shield mx-auto mt-7 max-w-2xl text-[clamp(1rem,1.6vw,1.2rem)] leading-relaxed text-pretty text-mist">
             Buy coverage before you hire. When the worker agent fails, the pool discharges
-            automatically — and the underwriter&rsquo;s own reinsurance cascades in behind it.
+            automatically, and the underwriter&rsquo;s own reinsurance cascades in behind it.
             Nobody pulls the trigger.
           </p>
         </Reveal>

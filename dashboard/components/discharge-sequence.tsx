@@ -64,7 +64,7 @@ const STEPS: readonly Step[] = [
   {
     clock: "2:45",
     title: "The worker misses",
-    body: "Meridian hires Aurora. Aurora fails to deliver. Meridian calls rejectOrder and the CAP order enters its terminal rejected state. That state — not an oracle we wrote — is the definition of failure.",
+    body: "Meridian hires Aurora. Aurora fails to deliver. Meridian calls rejectOrder and the CAP order enters its terminal rejected state. That state, not an oracle we wrote, is the definition of failure.",
     footnote: "OrderStatus: delivering → rejected",
     tone: "fail",
   },
@@ -85,7 +85,7 @@ const STEPS: readonly Step[] = [
   {
     clock: "4:15",
     title: "The market learns",
-    body: "Aurora's reliability index falls. The next quote on Aurora is more expensive — for everyone, not just Meridian. Reputation stops being a badge and starts being a price.",
+    body: "Aurora's reliability index falls. The next quote on Aurora is more expensive for everyone, not just Meridian. Reputation stops being a badge and starts being a price.",
     footnote: "reliability 82.0% → 80.0% · premium +18%",
     tone: "neutral",
   },
@@ -108,6 +108,7 @@ export function DischargeSequence() {
     <Section
       id="how"
       eyebrow="How a claim runs"
+      index="07"
       title="Failure to payout in 4.2 seconds."
       lead="No dispute window, no committee, no multisig. CAP declares the order dead, a watcher signs it, and the contract moves the money."
     >
@@ -159,9 +160,6 @@ export function DischargeSequence() {
               We did not build an agent that sells a service. We built the market that makes
               every other agent worth hiring.
             </blockquote>
-            <figcaption className="mt-4 font-mono text-[0.6875rem] tracking-[0.16em] text-mist-dim uppercase">
-              HALON · CROO Hackathon · DeFi / On-chain Ops
-            </figcaption>
           </figure>
         </Reveal>
       </div>

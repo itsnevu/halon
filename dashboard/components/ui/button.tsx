@@ -10,9 +10,8 @@ const base =
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-lime text-lime-ink hover:bg-lime-soft glow-lime-sm hover:shadow-[0_0_36px_-6px_rgba(123,240,78,0.9)]",
-  ghost:
-    "border border-line bg-white/[0.03] text-white backdrop-blur-sm hover:border-lime/40 hover:bg-white/[0.06]",
+    "bg-lime text-lime-ink hover:bg-lime-soft glow-lime-sm hover:shadow-[0_0_36px_-6px_rgba(200,230,60,0.9)]",
+  ghost: "neu neu-raise border border-line text-white hover:border-lime/40",
   subtle: "text-mist hover:text-white",
 };
 

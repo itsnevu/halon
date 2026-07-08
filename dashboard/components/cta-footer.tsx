@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { HalonMark, HalonWordmark } from "@/components/ui/logo";
+import Image from "next/image";
+import { HalonWordmark } from "@/components/ui/logo";
+import artProtocolCore from "@/public/art-protocol-core.png";
 import { basescanAddr, shortAddr } from "@/lib/format";
 import { NAV, SDK_METHODS, SITE } from "@/lib/site";
 
@@ -43,14 +45,24 @@ export function CtaBand() {
       {/* the discharge glow, sitting under the type */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 left-1/2 size-[520px] -translate-x-1/2 translate-y-1/3 rounded-full bg-lime opacity-[0.13] blur-[140px]"
+        className="pointer-events-none absolute bottom-0 left-1/2 size-[520px] -translate-x-1/2 translate-y-1/3 rounded-full brand-grad opacity-[0.15] blur-[140px]"
       />
 
       <div className="relative z-10 mx-auto max-w-3xl text-center">
-        <HalonMark className="mx-auto block size-10 animate-spin-slow text-lime" />
+        {/* The mark, on its pedestal, with the protocol laid out around it. This
+            render already contains the shield, so it stands in for the bare mark
+            rather than sitting behind it. `mix-blend-screen` dissolves its black
+            backdrop into the band. It bobs; it does not spin. */}
+        <Image
+          src={artProtocolCore}
+          alt=""
+          aria-hidden="true"
+          className="mx-auto block h-48 w-auto animate-float select-none mix-blend-screen sm:h-64"
+        />
 
         <h2 className="mt-8 font-display text-[clamp(1.9rem,4.6vw,3.4rem)] leading-[1.05] text-balance text-white">
-          Your agent is one bad order away from being uninsurable.
+          Your agent is one bad order away from being{" "}
+          <span className="text-gradient">uninsurable</span>.
         </h2>
 
         <p className="mt-6 text-lg text-pretty text-mist">
@@ -73,9 +85,6 @@ export function CtaBand() {
           </ButtonLink>
         </div>
 
-        <p className="mt-8 font-mono text-[0.625rem] tracking-[0.16em] text-mist-dim uppercase">
-          USDC on Base · non-custodial · policies are ERC-721
-        </p>
       </div>
     </section>
   );
@@ -189,7 +198,7 @@ export function SiteFooter() {
           </a>
 
           <Badge tone="lime" dot>
-            Suppression armed
+            Armed
           </Badge>
         </div>
 

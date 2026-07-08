@@ -5,6 +5,9 @@ import { cn } from "@/lib/cn";
 import type { Policy, PolicyStatus } from "@/lib/types";
 import { Badge, Meta, type Tone } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
+import { SectionArt } from "@/components/ui/section-art";
+import iconLayers from "@/public/icon-layers.png";
+import artPolicyStack from "@/public/art-policy-stack.png";
 import { Reveal } from "@/components/ui/reveal";
 
 /* ── status → badge ─────────────────────────────────────────────
@@ -167,7 +170,7 @@ function PolicyCard({ policy }: { policy: Policy }) {
           <Meta label="Reliability at bind">{pct(policy.reliabilityAtBind, 1)}</Meta>
           <Meta label="Tenor">{durationLabel(policy.tenorHours * 3600)}</Meta>
           <Meta label="Remaining">
-            {isActive ? durationLabel(policy.remainingSeconds) : "—"}
+            {isActive ? durationLabel(policy.remainingSeconds) : "n/a"}
           </Meta>
           <Meta label="Bound">{agoLabel(policy.boundAgoSeconds)}</Meta>
         </div>
@@ -217,7 +220,16 @@ export function PolicyBook() {
   return (
     <Section
       id="policies"
+      icon={iconLayers}
+      art={
+        <SectionArt
+          src={artPolicyStack}
+          contain
+          className="-right-32 bottom-0 hidden size-[640px] opacity-[0.15] lg:block"
+        />
+      }
       eyebrow="Policy book"
+      index="05"
       title="Every policy is an ERC-721."
       lead="Transferable, inspectable, and each one back-to-back reinsured the moment it was bound. The token is the claim."
     >

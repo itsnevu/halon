@@ -1,17 +1,9 @@
-"use client";
-
 /**
  * StatsStrip — the metrics rail under the ticker.
  *
- * ── Why "use client" on a component with no state ────────────────────────
- * The spec calls for `<CountUp format={usdCompact} />`. `CountUp` is a client
- * component, and React refuses to serialize a function prop across the RSC
- * boundary ("Functions cannot be passed directly to Client Components").
- * Since `app/page.tsx` is a Server Component, this module has to sit in the
- * client graph for `format` to be passable at all. Nothing here holds state;
- * the directive exists purely to open the boundary one level earlier.
- * Everything it pulls in — `lib/data`, `lib/format`, `Sparkline` — is pure and
- * isomorphic, so SSR output is identical either way.
+ * Stays a Server Component: `CountUp` takes a serializable `preset` string
+ * rather than a `format` function, so nothing has to cross the RSC boundary
+ * that React refuses to serialize.
  *
  * ── Hairline grid ────────────────────────────────────────────────────────
  * Every cell carries `border-t border-l` and the grid is shifted `-mt-px -ml-px`.
@@ -24,13 +16,12 @@
 
 import type { ReactNode } from "react";
 import { PROTOCOL_STATS, POOL_B } from "@/lib/data";
-import { pct, secondsLabel, usdCompact } from "@/lib/format";
+import { pct, secondsLabel } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { LIME } from "@/lib/brand";
 import { CountUp } from "@/components/ui/count-up";
 import { Reveal } from "@/components/ui/reveal";
 import { Sparkline } from "@/components/ui/sparkline";
-
-const LIME = "#7bf04e";
 
 /** Fraction of a cell's bar to fill — clamped so a >100% loss ratio can't overflow. */
 const lossBarWidth = pct(Math.min(1, Math.max(0, PROTOCOL_STATS.lossRatio)), 1);
@@ -102,22 +93,19 @@ export function StatsStrip() {
                 />
               }
             >
-              <CountUp value={PROTOCOL_STATS.tvlUsd} format={usdCompact} />
+              <CountUp value={PROTOCOL_STATS.tvlUsd} preset="usdCompact" />
             </Cell>
 
             <Cell label="Cover in force">
-              <CountUp value={PROTOCOL_STATS.coverageInForceUsd} format={usdCompact} />
+              <CountUp value={PROTOCOL_STATS.coverageInForceUsd} preset="usdCompact" />
             </Cell>
 
             <Cell label="Active policies">
-              <CountUp
-                value={PROTOCOL_STATS.activePolicies}
-                format={(n) => Math.round(n).toString()}
-              />
+              <CountUp value={PROTOCOL_STATS.activePolicies} preset="int" />
             </Cell>
 
             <Cell label="Discharged to clients" danger>
-              <CountUp value={PROTOCOL_STATS.claimsPaidUsd} format={usdCompact} />
+              <CountUp value={PROTOCOL_STATS.claimsPaidUsd} preset="usdCompact" />
             </Cell>
 
             <Cell

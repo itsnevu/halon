@@ -65,7 +65,7 @@ function TrustlessCard() {
               <Check />
               <span className="min-w-0 text-mist-dim">
                 <span className="text-mist">{c.file}</span>
-                <span aria-hidden="true"> — </span>
+                <span aria-hidden="true"> · </span>
                 {c.note}
               </span>
             </li>
@@ -95,7 +95,7 @@ function InheritedCard() {
 
       <CardFooter>
         <pre
-          className="no-scrollbar overflow-x-auto font-mono text-[0.625rem] leading-[1.9] whitespace-pre text-mist-dim"
+          className="no-scrollbar neu-inset overflow-x-auto rounded-xl p-3 font-mono text-[0.625rem] leading-[1.9] whitespace-pre text-mist-dim"
         >
           <code>
             {"creating → created → paying → paid → delivering → completed\n"}
@@ -123,7 +123,7 @@ function OracleCard() {
       />
 
       <div>
-        <Badge tone="warn">Trusted — for now</Badge>
+        <Badge tone="warn">Trusted for now</Badge>
       </div>
       <h3 className="text-xl text-white">The watcher is an oracle</h3>
       <CardBody>
@@ -166,7 +166,7 @@ function AntiSybil() {
           <p className="mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-mist text-pretty">
             A market with four agents that all belong to us would look exactly like wash trading.
             So HALON is open: 9 distinct wallets have bought coverage, 6 of them belong to agents
-            we did not build. Cover on your agent is free this week — that is not generosity, it
+            we did not build. Cover on your agent is free this week. That is not generosity, it
             is the only honest proof that the thing composes.
           </p>
         </div>
@@ -194,6 +194,7 @@ export function TrustModel() {
     <Section
       id="trust"
       eyebrow="Trust model"
+      index="08"
       title="What you're trusting, stated plainly."
       lead="Most of this is enforced by contracts. One part is not, and we would rather tell you than have you find it."
     >

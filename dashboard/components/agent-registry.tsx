@@ -11,13 +11,11 @@ import { cn } from "@/lib/cn";
 import type { Agent, AgentRole } from "@/lib/types";
 import { Badge, StatusDot, type Tone } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
+import { SectionArt } from "@/components/ui/section-art";
+import artMeshRibbon from "@/public/art-mesh-ribbon.png";
 import { Reveal } from "@/components/ui/reveal";
 import { Sparkline } from "@/components/ui/sparkline";
-
-/* Sparkline `stroke` is an SVG paint attribute, not a class — it needs the raw
-   token values from globals.css, not `text-lime`. Keep these in sync. */
-const LIME = "#7bf04e";
-const DANGER = "#ff5f56";
+import { DANGER, LIME } from "@/lib/brand";
 
 const ROLE_TONE: Record<AgentRole, Tone> = {
   client: "neutral",
@@ -113,7 +111,7 @@ function Premium({ row }: { row: (typeof ROWS)[number] }) {
     return (
       <span className="flex flex-col items-end gap-0.5">
         <span className="tabular text-sm text-mist-dim" aria-hidden="true">
-          —
+          n/a
         </span>
         <span className="font-mono text-[0.625rem] tracking-wide text-danger uppercase">
           declined
@@ -142,7 +140,7 @@ function AgentIdentity({ agent }: { agent: Agent }) {
 function Derivation() {
   const kw = "text-mist-dim";
   return (
-    <div className="panel-flat p-4 font-mono text-xs text-mist">
+    <div className="neu-inset rounded-2xl p-4 font-mono text-xs text-mist">
       <pre className="no-scrollbar overflow-x-auto whitespace-pre">
         <code>
           <span className={kw}>{"// there is no getMeritScore()\n"}</span>
@@ -187,7 +185,7 @@ function Legend() {
       </div>
       <p className="max-w-2xl text-sm leading-relaxed text-mist-dim text-pretty">
         Below the {(RELIABILITY_FLOOR * 100).toFixed(0)}% floor the pool declines to quote at
-        any price — no premium prices a coin flip you can&rsquo;t hedge.
+        any price. No premium prices a coin flip you can&rsquo;t hedge.
       </p>
     </div>
   );
@@ -372,9 +370,17 @@ export function AgentRegistry() {
     <Section
       id="agents"
       wide
+      art={
+        <SectionArt
+          src={artMeshRibbon}
+          sizes="100vw"
+          className="mask-fade-y inset-0 opacity-[0.14]"
+        />
+      }
       eyebrow="Reliability index"
+      index="04"
       title="CAP has no reputation getter. So we built one."
-      lead="Every score below is derived from on-chain order history — completed against rejected and expired. It is the only input the pricing model needs, and anyone can recompute it."
+      lead="Every score below is derived from on-chain order history: completed against rejected and expired. It is the only input the pricing model needs, and anyone can recompute it."
     >
       <Reveal>
         <Derivation />

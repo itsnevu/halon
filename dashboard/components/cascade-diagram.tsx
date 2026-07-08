@@ -4,6 +4,9 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/ui/reveal";
 import { Section } from "@/components/ui/section";
+import { SectionArt } from "@/components/ui/section-art";
+import iconCascade from "@/public/icon-cascade.png";
+import artChain from "@/public/art-chain.png";
 import {
   DEMO_COVERAGE_USD,
   DEMO_QUOTE,
@@ -14,18 +17,7 @@ import {
 } from "@/lib/data";
 import { pct, usd, usdCompact } from "@/lib/format";
 import { cn } from "@/lib/cn";
-
-/* ─────────────────────────────────────────────────────────────
-   Palette — inlined as literals because SVG paints (stroke, fill,
-   gradient stops, marker fills) can't read Tailwind utility classes.
-   These are the exact values from globals.css @theme.
-   ───────────────────────────────────────────────────────────── */
-const INK = "#050705";
-const SURFACE = "#0d110c";
-const LINE = "#1f2b1c";
-const MIST_DIM = "#6a756a";
-const LIME = "#7bf04e";
-const DANGER = "#ff5f56";
+import { DANGER, INK, LIME, LINE, MINT, MIST_DIM, SURFACE } from "@/lib/brand";
 
 type Mode = "happy" | "discharge";
 type Tone = "lime" | "danger";
@@ -182,7 +174,7 @@ const STEPS: Record<Mode, Step[]> = {
       t: "T+0.0s",
       title: "Cover bound",
       detail:
-        "Meridian pays the premium. It lands in Sentinel's PolicyPool inside the CAP pay-tx — atomically, not as a follow-up transfer.",
+        "Meridian pays the premium. It lands in Sentinel's PolicyPool inside the CAP pay-tx: atomically, not as a follow-up transfer.",
       edges: ["e1"],
       tone: "lime",
     },
@@ -376,9 +368,20 @@ export function CascadeDiagram() {
     <Section
       id="cascade"
       wide
+      clip={false}
+      icon={iconCascade}
+      art={
+        <SectionArt
+          src={artChain}
+          contain
+          sizes="100vw"
+          className="mask-fade-y inset-x-0 -top-48 -z-10 h-[760px] opacity-[0.18]"
+        />
+      }
       eyebrow="The cascade"
+      index="01"
       title="One failure, three layers, zero humans."
-      lead="A client buys cover from an underwriter. The underwriter immediately buys its own cover from a reinsurer. When the worker misses its deadline, capital moves back down the chain — automatically."
+      lead="A client buys cover from an underwriter. The underwriter immediately buys its own cover from a reinsurer. When the worker misses its deadline, capital moves back down the chain, automatically."
     >
       <div
         className="grid gap-6 lg:grid-cols-[1fr_360px]"
@@ -470,7 +473,7 @@ export function CascadeDiagram() {
                       y2="120"
                     >
                       <stop offset="0%" stopColor={DANGER} />
-                      <stop offset="100%" stopColor={LIME} />
+                      <stop offset="100%" stopColor={MINT} />
                     </linearGradient>
                   </defs>
 

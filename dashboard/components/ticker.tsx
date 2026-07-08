@@ -58,7 +58,7 @@ function Rail({
       {items.map((item) => (
         <Fragment key={item.key}>
           <span className={cn(ITEM_BASE, itemClassName)}>{item.node}</span>
-          <HalonMark className={cn("size-3.5 shrink-0 opacity-70", markClassName)} />
+          <HalonMark className={cn("h-3.5 w-auto opacity-70", markClassName)} />
         </Fragment>
       ))}
     </div>
@@ -90,13 +90,16 @@ function Rail({
   );
 }
 
-/** The loud lime band that sits directly under the hero. */
+/** The loud brand-gradient band that sits directly under the hero. */
 export function Ticker({ className }: { className?: string }) {
   return (
     <Rail
       items={CLAIM_ITEMS}
       itemClassName="tracking-[0.16em] uppercase"
-      bandClassName="border-lime-deep/30 bg-lime text-lime-ink"
+      bandClassName="border-lime-deep/30 brand-grad-x text-lime-ink"
+      // The mark's own gradient would vanish against the band it sits on;
+      // `brightness-0` flattens it to the band's ink colour instead.
+      markClassName="brightness-0 opacity-45"
       tilt
       className={className}
     />
@@ -110,7 +113,7 @@ export function TickerReverse({ className }: { className?: string }) {
       items={SDK_ITEMS}
       itemClassName="tracking-[0.08em] normal-case"
       bandClassName="border-line bg-ink text-mist"
-      markClassName="text-mist-dim opacity-60"
+      markClassName="opacity-55"
       reverse
       className={className}
     />

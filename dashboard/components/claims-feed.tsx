@@ -234,8 +234,9 @@ export function ClaimsFeed() {
       id="claims"
       wide
       eyebrow="Live"
+      index="06"
       title="The discharge log."
-      lead="order_rejected and order_expired are CAP's own terminal order states. We did not build a failure oracle — we subscribed to one."
+      lead="order_rejected and order_expired are CAP's own terminal order states. We did not build a failure oracle. We subscribed to one."
     >
       <div className="grid items-start gap-6 lg:grid-cols-[260px_1fr]">
         {/* ── Left rail ─────────────────────────────────────── */}

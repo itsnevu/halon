@@ -13,7 +13,17 @@ import { useId, useMemo, useState, type ChangeEvent } from "react";
 import { Badge, type Tone } from "@/components/ui/badge";
 import { Reveal } from "@/components/ui/reveal";
 import { Section } from "@/components/ui/section";
+import iconReticle from "@/public/icon-reticle.png";
 import { cn } from "@/lib/cn";
+import {
+  DANGER,
+  INK,
+  LIME,
+  LINE,
+  LINE_SOFT as GRID,
+  MIST_DIM as AXIS_TEXT,
+  limeAlpha,
+} from "@/lib/brand";
 import { POOL_A, UTIL_A, WORKERS } from "@/lib/data";
 import { bps, multiple, pct, usd, usd0, usdCompact } from "@/lib/format";
 import {
@@ -64,11 +74,6 @@ const PH = CH - PAD.top - PAD.bottom;
 const X_FROM = 0.3;
 const X_TO = 1;
 const X_TICKS = [0.3, 0.5, 0.7, 0.85, 1];
-
-const GRID = "#161f14";
-const AXIS_TEXT = "#6a756a";
-const LIME = "#7bf04e";
-const DANGER = "#ff5f56";
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
@@ -181,7 +186,7 @@ export function QuoteEngine() {
 
   const sliderPct = ((reliability * 100 - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100;
   const floorPct = ((RELIABILITY_FLOOR * 100 - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100;
-  const sliderBg = `linear-gradient(to right, ${LIME} 0%, ${LIME} ${sliderPct}%, #1f2b1c ${sliderPct}%, #1f2b1c 100%)`;
+  const sliderBg = `linear-gradient(to right, ${LIME} 0%, ${LIME} ${sliderPct}%, ${LINE} ${sliderPct}%, ${LINE} 100%)`;
 
   /* ── chart ── */
 
@@ -200,7 +205,21 @@ export function QuoteEngine() {
   return (
     <Section
       id="quote"
+      icon={iconReticle}
+      art={
+        <>
+          <div
+            aria-hidden="true"
+            className="grid-bg-sm mask-fade-b pointer-events-none absolute inset-0 opacity-60"
+          />
+          <div
+            aria-hidden="true"
+            className="brand-grad pointer-events-none absolute -top-32 left-1/2 h-[460px] w-[900px] -translate-x-1/2 rounded-[50%] opacity-[0.06] blur-[130px]"
+          />
+        </>
+      }
       eyebrow="Quote engine"
+      index="02"
       title="Pricing you can audit, not just trust."
       lead="Every premium on this page comes out of the same pure function RiskEngine.sol runs on-chain. Move the slider and watch the loading decompose."
     >
@@ -299,11 +318,11 @@ export function QuoteEngine() {
                     "[&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:rounded-full",
                     "[&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-ink",
                     "[&::-webkit-slider-thumb]:bg-lime",
-                    "[&::-webkit-slider-thumb]:shadow-[0_0_14px_-2px_rgba(123,240,78,0.9)]",
+                    "[&::-webkit-slider-thumb]:shadow-[0_0_14px_-2px_rgba(200,230,60,0.9)]",
                     "[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:cursor-pointer",
                     "[&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2",
                     "[&::-moz-range-thumb]:border-ink [&::-moz-range-thumb]:bg-lime",
-                    "[&::-moz-range-thumb]:shadow-[0_0_14px_-2px_rgba(123,240,78,0.9)]",
+                    "[&::-moz-range-thumb]:shadow-[0_0_14px_-2px_rgba(200,230,60,0.9)]",
                     "[&::-moz-range-track]:bg-transparent",
                   )}
                 />
@@ -445,7 +464,7 @@ export function QuoteEngine() {
                     q.insurable ? "text-glow text-white" : "text-mist-dim",
                   )}
                 >
-                  {q.insurable ? usd(q.premiumUsd) : "—"}
+                  {q.insurable ? usd(q.premiumUsd) : "n/a"}
                 </p>
 
                 {q.insurable ? (
@@ -489,7 +508,7 @@ export function QuoteEngine() {
                   <div className="mt-6 rounded-lg border border-lime/20 bg-lime/[0.06] p-3">
                     <p className="text-xs leading-relaxed text-mist">
                       Solvency multiple{" "}
-                      <span className="tabular text-lime">{multiple(q.solvencyMultiple)}</span> — the
+                      <span className="tabular text-lime">{multiple(q.solvencyMultiple)}</span>. The
                       pool charges{" "}
                       <span className="tabular text-white">{usd(q.loadingUsd)}</span> above the{" "}
                       <span className="tabular text-white">{usd(q.expectedLossUsd)}</span> it expects
@@ -612,7 +631,7 @@ export function QuoteEngine() {
                     </text>
 
                     {/* the loading — the gap between premium and expected loss */}
-                    {chart.areaPath && <path d={chart.areaPath} fill={LIME} opacity={0.1} />}
+                    {chart.areaPath && <path d={chart.areaPath} fill={limeAlpha(0.1)} />}
 
                     {/* expected loss */}
                     <path
@@ -690,7 +709,7 @@ export function QuoteEngine() {
                         width={chipW}
                         height={18}
                         rx={4}
-                        fill="#050705"
+                        fill={INK}
                         stroke={pointColor}
                         strokeOpacity={0.45}
                       />

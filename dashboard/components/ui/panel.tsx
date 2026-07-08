@@ -13,13 +13,14 @@ export function Panel({
   children: ReactNode;
   /** Drop the glass highlight — for nested / secondary surfaces. */
   flat?: boolean;
+  /** Lift off the canvas on hover. Meaningless on `flat` — it casts no shadow. */
   hover?: boolean;
 }) {
   return (
     <Tag
       className={cn(
         flat ? "panel-flat" : "panel",
-        hover && "transition-colors duration-200 hover:border-lime/30",
+        hover && "neu-raise hover:border-lime/30",
         className,
       )}
     >

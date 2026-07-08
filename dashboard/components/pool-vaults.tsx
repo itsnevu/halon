@@ -1,23 +1,9 @@
 /**
  * PoolVaults — the two stacked capital layers.
  *
- * ── Why the capital figure is not a <CountUp> ────────────────────────────
- * The spec asks for `<CountUp value={pool.totalCapitalUsd} format={usd0} />`.
- * `CountUp` is a client component and React refuses to serialize a function
- * prop across the RSC boundary ("Functions cannot be passed directly to Client
- * Components" — see next/dist/docs 01-app/03-api-reference/01-directives/
- * use-client.md). `app/page.tsx` is a Server Component, so `format={usd0}` here
- * would be a runtime error, not a lint nit.
- *
- * This module is designated a Server Component and needs no state, effects, or
- * handlers, so it stays on the server and renders the figure statically.
- * `CountUp` SSRs `format(value)` anyway, so the at-rest markup is byte-identical
- * — only the 1.4s post-hydration tween is lost, and <Reveal> already carries the
- * entrance beat. It also keeps the page's largest static block out of the
- * hydration path.
- *
- * If you want the tween back, add "use client" to line 1 and pass `format={usd0}`
- * — exactly what `stats-strip.tsx` does. That is the only change required.
+ * Stays a Server Component. `CountUp` takes a serializable `preset` string
+ * rather than a `format` function, so the tween survives without dragging this
+ * module — the page's largest static block — into the client graph.
  *
  * ── Derivation ───────────────────────────────────────────────────────────
  * Utilization comes from `poolUtilization(pool)` and the layer copy from
@@ -30,9 +16,13 @@ import { POOLS, PROTOCOL_STATS } from "@/lib/data";
 import { CEDED_SHARE, poolUtilization } from "@/lib/risk-engine";
 import { basescanAddr, multiple, pct, shortAddr, usd0, usdCompact } from "@/lib/format";
 import { Badge, Meta } from "@/components/ui/badge";
+import { CountUp } from "@/components/ui/count-up";
 import { Panel } from "@/components/ui/panel";
 import { Reveal } from "@/components/ui/reveal";
 import { Section } from "@/components/ui/section";
+import { SectionArt } from "@/components/ui/section-art";
+import iconLattice from "@/public/icon-lattice.png";
+import artVaultTiles from "@/public/art-vault-tiles.png";
 import { Sparkline } from "@/components/ui/sparkline";
 import { cn } from "@/lib/cn";
 
@@ -127,7 +117,7 @@ function PoolCard({ pool }: { pool: PoolState }) {
     pool.premiumsEarnedUsd > 0 ? pool.claimsPaidUsd / pool.premiumsEarnedUsd : null;
 
   return (
-    <Panel as="article" className="flex h-full flex-col overflow-hidden">
+    <Panel as="article" hover className="flex h-full flex-col overflow-hidden">
       {/* Header band */}
       <div className="relative p-6 pb-0">
         {chrome.depth && (
@@ -173,7 +163,7 @@ function PoolCard({ pool }: { pool: PoolState }) {
           Capital
         </p>
         <p className="tabular mt-2 font-display text-[2.75rem] leading-none text-white">
-          {usd0(pool.totalCapitalUsd)}
+          <CountUp value={pool.totalCapitalUsd} preset="usd0" />
         </p>
       </div>
 
@@ -183,7 +173,7 @@ function PoolCard({ pool }: { pool: PoolState }) {
           data={pool.history}
           width={640}
           height={64}
-          stroke="#7bf04e"
+          gradient
           fill
           marker
           id={pool.id}
@@ -251,13 +241,13 @@ function PoolCard({ pool }: { pool: PoolState }) {
           {chrome.recovers ? (
             usd0(pool.recoveredUsd)
           ) : (
-            <span className="text-mist-dim">—</span>
+            <span className="text-mist-dim">n/a</span>
           )}
         </Meta>
         <Meta label="Active policies">{pool.activePolicies}</Meta>
         <Meta label="Loss ratio">
           {lossRatio === null ? (
-            <span className="text-mist-dim">—</span>
+            <span className="text-mist-dim">n/a</span>
           ) : (
             pct(lossRatio, 1)
           )}
@@ -279,9 +269,17 @@ export function PoolVaults() {
   return (
     <Section
       id="pools"
+      icon={iconLattice}
+      art={
+        <SectionArt
+          src={artVaultTiles}
+          className="-top-24 -right-24 hidden size-[620px] opacity-[0.13] lg:block"
+        />
+      }
       eyebrow="Capital"
+      index="03"
       title="Two pools, stacked."
-      lead="Sentinel writes the policy. Bastion Re stands behind Sentinel. Premiums land in these vaults atomically, inside the CAP pay-tx — there is no manual transfer step that can fail halfway."
+      lead="Sentinel writes the policy. Bastion Re stands behind Sentinel. Premiums land in these vaults atomically, inside the CAP pay-tx. There is no manual transfer step that can fail halfway."
     >
       <Reveal className="mb-6 flex flex-wrap gap-x-8 gap-y-2 font-mono text-[0.6875rem] tracking-wide text-mist-dim uppercase">
         <SummaryItem label="Total value locked" value={usdCompact(PROTOCOL_STATS.tvlUsd)} />

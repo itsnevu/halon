@@ -2,30 +2,63 @@
 
 /* ─────────────────────────────────────────────────────────────
    HALON design tokens
-   Near-black canvas + one loud lime. Everything else grayscale.
+
+   Pure-black canvas + the logo's own gradient: chartreuse at the
+   crown of the mark, mint at the nozzle. Every accent is a point
+   on that ramp — see `lib/brand.ts`, which holds the same three
+   values for SVG strokes that cannot read a CSS token.
    Red is reserved exclusively for failure / discharge states.
+
+   ── Why "dark neumorphism" and not the textbook kind ──────────
+   Textbook neumorphism casts a dark shadow and a light shadow off
+   a mid-tone surface. On a #000 canvas a dark shadow is invisible
+   — there is nothing darker to cast onto. So extrusion here comes
+   from three things instead:
+
+     1. a self-shading surface gradient (lit top-left → dark
+        bottom-right), which is where the "extruded" read lives;
+     2. a 1px inset bevel: white on the top-left edge, black on the
+        bottom-right;
+     3. a wide, very faint ambient halo up-left, standing in for a
+        light source rather than a cast shadow.
+
+   The cast shadow is still there (`16px 18px 44px`) and does real
+   work wherever a panel sits on `--color-ink-2` rather than on
+   pure black.
    ───────────────────────────────────────────────────────────── */
 @theme {
-  --color-ink: #050705;
-  --color-ink-2: #080b07;
-  --color-surface: #0d110c;
-  --color-surface-2: #131811;
-  --color-surface-3: #1a2117;
-  --color-line: #1f2b1c;
-  --color-line-soft: #161f14;
+  /* Canvas. Black is black — the brief was explicit. */
+  --color-ink: #000000;
+  --color-ink-2: #060806;
+
+  /* Each surface lifts a little further off the canvas. */
+  --color-surface: #0b0e0a;
+  --color-surface-2: #11150f;
+  --color-surface-3: #191e16;
+  --color-line: #1e2a1c;
+  --color-line-soft: #141b13;
 
   --color-mist: #9ba89b;
   --color-mist-dim: #6a756a;
 
-  --color-lime: #7bf04e;
-  --color-lime-soft: #a9ff85;
-  --color-lime-deep: #45b527;
-  --color-lime-ink: #04170a;
+  /* ── The logo ramp, sampled from public/HALON.png ── */
+  --color-lime: #c8e63c; /* crown */
+  --color-spring: #bae95e; /* waist */
+  --color-mint: #61e7c3; /* nozzle */
+
+  --color-lime-soft: #dcf07a;
+  --color-lime-deep: #93b825;
+  --color-lime-ink: #06170c;
 
   --color-danger: #ff5f56;
   --color-danger-dim: #4a1f1c;
   --color-warn: #ffc247;
   --color-info: #6ee7ff;
+
+  /* Neumorphic light + dark, referenced by every raised surface. */
+  --neu-hi: rgba(255, 255, 255, 0.055);
+  --neu-hi-soft: rgba(255, 255, 255, 0.018);
+  --neu-lo: rgba(0, 0, 0, 0.95);
 
   --animate-marquee: marquee 44s linear infinite;
   --animate-marquee-rev: marquee-rev 44s linear infinite;
@@ -130,40 +163,156 @@
 }
 
 @layer components {
-  /* the card surface used everywhere */
+  /* The card surface used everywhere: a raised neumorphic slab. */
   .panel {
     position: relative;
-    border-radius: 1rem;
+    border-radius: 1.15rem;
     border: 1px solid var(--color-line);
-    background-color: var(--color-surface);
-    background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.035),
-      rgba(255, 255, 255, 0.008)
-    );
+    background-image: linear-gradient(158deg, #12160f 0%, #0b0e0a 46%, #050705 100%);
+    box-shadow:
+      /* 1px bevel: lit on the top-left, cut on the bottom-right */
+      inset 1px 1px 0 var(--neu-hi),
+      inset -1px -1px 0 rgba(0, 0, 0, 0.7),
+      /* ambient light, up and to the left */
+      -12px -12px 32px var(--neu-hi-soft),
+      /* the cast depth — reads against bg-ink-2 sections */
+      16px 18px 44px -10px var(--neu-lo);
   }
-  /* hairline top highlight — what makes a dark card read as glass */
+  /* Hairline top highlight, now carrying the brand ramp rather than one green. */
   .panel::before {
     content: "";
     position: absolute;
     inset: 0 0 auto 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(123, 240, 78, 0.35), transparent);
-    opacity: 0.7;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(200, 230, 60, 0.4) 30%,
+      rgba(97, 231, 195, 0.4) 70%,
+      transparent
+    );
+    opacity: 0.75;
     pointer-events: none;
   }
+  /* Nested / secondary surfaces: same material, no cast shadow. */
   .panel-flat {
     border-radius: 1rem;
     border: 1px solid var(--color-line);
-    background-color: var(--color-surface);
+    background-image: linear-gradient(158deg, #0f120e 0%, #0a0d09 100%);
+    box-shadow:
+      inset 1px 1px 0 rgba(255, 255, 255, 0.035),
+      inset -1px -1px 0 rgba(0, 0, 0, 0.55);
   }
 }
 
 @layer utilities {
+  /* ── Neumorphic primitives ─────────────────────────────────── */
+
+  /* A raised control that is not a full panel: pills, chips, icon buttons. */
+  .neu {
+    background-image: linear-gradient(158deg, #14180f 0%, #0c100b 100%);
+    box-shadow:
+      inset 1px 1px 0 var(--neu-hi),
+      inset -1px -1px 0 rgba(0, 0, 0, 0.7),
+      -6px -6px 18px var(--neu-hi-soft),
+      8px 10px 24px -8px var(--neu-lo);
+  }
+  /* Pressed into the surface: inputs, wells, code blocks, track grooves. */
+  .neu-inset {
+    background-color: #05070500;
+    box-shadow:
+      inset 4px 5px 12px rgba(0, 0, 0, 0.92),
+      inset -3px -3px 10px rgba(255, 255, 255, 0.028),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+  /* Lift on hover. Pair with `.panel` or `.neu`.
+     `border-color` rides along so a `hover:border-*` on the same element eases
+     with the lift instead of snapping. */
+  .neu-raise {
+    transition:
+      transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .neu-raise:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 1px 1px 0 rgba(255, 255, 255, 0.07),
+      inset -1px -1px 0 rgba(0, 0, 0, 0.7),
+      -14px -14px 38px rgba(255, 255, 255, 0.026),
+      20px 24px 54px -12px var(--neu-lo),
+      0 0 46px -18px rgba(200, 230, 60, 0.35);
+  }
+
+  /* ── Brand ramp ────────────────────────────────────────────── */
+
+
+  /* ── Hero legibility over the plasma ───────────────────────────
+     The plasma is a live shader: we cannot know what will be behind
+     any given word on any given frame. These two are the guarantee
+     that the headline stays readable anyway.
+
+     `.hero-scrim` sinks the middle of the hero, where the type sits.
+     It is the inverse of the edge vignette below it — together they
+     leave the plasma brightest in a band between the two, which is
+     exactly where nothing is written. */
+  .hero-scrim {
+    background-image: radial-gradient(
+      56% 58% at 50% 48%,
+      rgba(0, 0, 0, 0.88) 0%,
+      rgba(0, 0, 0, 0.7) 45%,
+      rgba(0, 0, 0, 0.35) 70%,
+      transparent 85%
+    );
+  }
+  /* Belt to the scrim's braces: a filament can still drift under a
+     glyph. Costs nothing on a dark canvas, saves the one bad frame. */
+  .text-shield {
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.55),
+      0 10px 44px rgba(0, 0, 0, 0.85);
+  }
+
+  .brand-grad {
+    background-image: linear-gradient(
+      155deg,
+      var(--color-lime) 0%,
+      var(--color-spring) 45%,
+      var(--color-mint) 100%
+    );
+  }
+  .brand-grad-x {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-lime) 0%,
+      var(--color-spring) 42%,
+      var(--color-mint) 100%
+    );
+  }
+  .text-gradient {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-lime) 0%,
+      var(--color-spring) 40%,
+      var(--color-mint) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Soft aurora bloom for hero / section backdrops. */
+  .aurora {
+    background-image:
+      radial-gradient(42% 55% at 22% 18%, rgba(200, 230, 60, 0.13), transparent 68%),
+      radial-gradient(46% 58% at 78% 72%, rgba(97, 231, 195, 0.11), transparent 70%);
+    filter: blur(2px);
+  }
+
+  /* ── Textures ──────────────────────────────────────────────── */
   .grid-bg {
     background-image:
-      linear-gradient(to right, rgba(123, 240, 78, 0.055) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(123, 240, 78, 0.055) 1px, transparent 1px);
+      linear-gradient(to right, rgba(200, 230, 60, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(200, 230, 60, 0.05) 1px, transparent 1px);
     background-size: 64px 64px;
   }
   .grid-bg-sm {
@@ -173,24 +322,29 @@
     background-size: 28px 28px;
   }
   .dot-bg {
-    background-image: radial-gradient(rgba(123, 240, 78, 0.14) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(97, 231, 195, 0.14) 1px, transparent 1px);
     background-size: 22px 22px;
   }
+
+  /* ── Glows ─────────────────────────────────────────────────── */
   .glow-lime {
     box-shadow:
-      0 0 0 1px rgba(123, 240, 78, 0.25),
-      0 0 32px -6px rgba(123, 240, 78, 0.45),
-      0 0 90px -30px rgba(123, 240, 78, 0.7);
+      0 0 0 1px rgba(200, 230, 60, 0.25),
+      0 0 34px -6px rgba(200, 230, 60, 0.45),
+      0 0 96px -30px rgba(97, 231, 195, 0.65);
   }
   .glow-lime-sm {
-    box-shadow: 0 0 22px -8px rgba(123, 240, 78, 0.8);
+    box-shadow: 0 0 24px -8px rgba(200, 230, 60, 0.85);
   }
   .glow-danger-sm {
     box-shadow: 0 0 22px -8px rgba(255, 95, 86, 0.8);
   }
   .text-glow {
-    text-shadow: 0 0 28px rgba(123, 240, 78, 0.45);
+    text-shadow:
+      0 0 26px rgba(200, 230, 60, 0.4),
+      0 0 60px rgba(97, 231, 195, 0.22);
   }
+
   .tabular {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
@@ -215,7 +369,14 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   .shimmer-text {
-    background-image: linear-gradient(90deg, #6a756a 0%, #ffffff 45%, #6a756a 60%);
+    background-image: linear-gradient(
+      90deg,
+      #6a756a 0%,
+      var(--color-lime) 38%,
+      #ffffff 48%,
+      var(--color-mint) 58%,
+      #6a756a 72%
+    );
     background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
@@ -225,7 +386,7 @@
   .stripe-lime {
     background-image: repeating-linear-gradient(
       -45deg,
-      rgba(123, 240, 78, 0.14) 0 6px,
+      rgba(200, 230, 60, 0.14) 0 6px,
       transparent 6px 12px
     );
   }
@@ -248,5 +409,8 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+  .neu-raise:hover {
+    transform: none;
   }
 }

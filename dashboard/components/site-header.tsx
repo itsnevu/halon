@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { HalonWordmark } from "@/components/ui/logo";
 import { cn } from "@/lib/cn";
@@ -97,11 +96,8 @@ export function SiteHeader() {
               aria-label="HALON home"
               className="rounded-sm transition-opacity duration-200 hover:opacity-80"
             >
-              <HalonWordmark className="text-[1.375rem] md:text-2xl" />
+              <HalonWordmark eager className="text-[1.375rem] md:text-2xl" />
             </a>
-            <Badge tone="neutral" className="hidden md:inline-flex">
-              Base · USDC
-            </Badge>
           </div>
 
           {/* center */}
@@ -202,9 +198,6 @@ export function SiteHeader() {
           </nav>
 
           <div className="relative mx-auto flex w-full max-w-7xl shrink-0 flex-col gap-3 border-t border-line px-5 pt-6 pb-8 sm:px-8">
-            <Badge tone="neutral" className="w-fit">
-              Base · USDC
-            </Badge>
             <ButtonLink
               variant="ghost"
               size="lg"
