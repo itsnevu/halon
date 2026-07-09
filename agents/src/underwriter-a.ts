@@ -1,7 +1,7 @@
 import { EventType } from "@croo-network/sdk";
 
 import { policyPoolAbi } from "./lib/abi";
-import { capClient, holdOpen, nextEvent, reliabilityBpsOf } from "./lib/cap";
+import { capClient, eventWaiter, holdOpen, reliabilityBpsOf } from "./lib/cap";
 import { agentKey, bps, log, orderKey, publicClient, send, signer, usd, waitFor } from "./lib/chain";
 import { need, needAddress } from "./lib/env";
 
@@ -42,8 +42,9 @@ async function main() {
   const coverageServiceId = need("SERVICE_ID_COVERAGE_A");
   const reinsuranceServiceId = need("SERVICE_ID_REINSURANCE_B");
 
-  const quoted = new Map<string, { request: CoverRequest; reliabilityBps: bigint }>();
+  const quoted = new Map<string, { request: CoverRequest; reliabilityBps: bigint; cededCoverage: bigint }>();
   const stream = await cap.connectWebSocket();
+  const orderCreated = eventWaiter(stream, EventType.OrderCreated);
 
   /* ── Quote and accept ─────────────────────────────────────── */
 
@@ -76,7 +77,9 @@ async function main() {
         }
 
         const { order } = await cap.acceptNegotiationWithFundAddress(negotiationId, poolA);
-        quoted.set(order.orderId, { request, reliabilityBps });
+        // What we will cede, taken from the engine's own split rather than a `/ 2`
+        // that quietly stops matching the day `CEDED_SHARE_BPS` moves.
+        quoted.set(order.orderId, { request, reliabilityBps, cededCoverage: coverage - quote.netRetention });
         log(
           SCOPE,
           `quoted ${usd(coverage)} on ${request.insuredAgentId} at ${bps(reliabilityBps)} → ` +
@@ -95,8 +98,9 @@ async function main() {
       const orderId = event.order_id!;
       const context = quoted.get(orderId);
       if (!context) return; // not one of ours
+      quoted.delete(orderId); // a long-lived agent should not accumulate a book in RAM
 
-      const { request, reliabilityBps } = context;
+      const { request, reliabilityBps, cededCoverage } = context;
       const coverage = BigInt(request.coverage);
       const startedAt = Date.now();
 
@@ -140,7 +144,6 @@ async function main() {
         );
 
         // 3 — Become a requester. Nobody told us to do this.
-        const cededCoverage = coverage / 2n; // CEDED_SHARE_BPS = 5_000
         const negotiation = await cap.negotiateOrder({
           serviceId: reinsuranceServiceId,
           fundAmount: cededPremium.toString(),
@@ -153,11 +156,7 @@ async function main() {
           }),
         });
 
-        const created = await nextEvent(
-          stream,
-          EventType.OrderCreated,
-          (e) => e.negotiation_id === negotiation.negotiationId,
-        );
+        const created = await orderCreated((e) => e.negotiation_id === negotiation.negotiationId);
         const reinsuranceOrderId = created.order_id!;
         await cap.payOrder(reinsuranceOrderId);
         log(SCOPE, `ceded ${usd(cededCoverage)} to Bastion Re for ${usd(cededPremium)}`);

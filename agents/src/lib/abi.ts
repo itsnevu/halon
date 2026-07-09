@@ -45,6 +45,7 @@ export const claimsAdjudicatorAbi = parseAbi([
   "function hashAttestation(Attestation a) view returns (bytes32)",
   "function isAutoPayable(Attestation a) pure returns (bool)",
   "function threshold() view returns (uint256)",
+  "function isRegisteredPool(address pool) view returns (bool)",
 ]);
 
 /** `PolicyPool.Status`. Zero is "no such policy", which is why `Armed` is 1. */

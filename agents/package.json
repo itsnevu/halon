@@ -7,6 +7,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "verify-wiring": "tsx scripts/verify-wiring.ts",
+    "deposit-capital": "tsx scripts/deposit-capital.ts",
+    "seed": "tsx src/seed.ts",
     "worker": "tsx src/worker.ts",
     "underwriter-a": "tsx src/underwriter-a.ts",
     "underwriter-b": "tsx src/underwriter-b.ts",

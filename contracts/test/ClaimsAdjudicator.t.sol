@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 
+import {HostilePool} from "./mocks/HostilePool.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 import {ClaimsAdjudicator} from "../src/ClaimsAdjudicator.sol";
 import {PolicyPool} from "../src/PolicyPool.sol";
@@ -70,6 +71,10 @@ contract ClaimsAdjudicatorTest is Test {
         poolB.grantRole(poolB.ADJUDICATOR_ROLE(), address(adj));
 
         poolA.setCedeRecipient(uwA);
+
+        // The adjudicator acts on these two pools and no others.
+        adj.setPool(address(poolA), true);
+        adj.setPool(address(poolB), true);
         vm.stopPrank();
 
         _deposit(poolA, uwA, START);
@@ -352,6 +357,56 @@ contract ClaimsAdjudicatorTest is Test {
         assertEq(poolA.recoveredTotal(), 0, "nothing came back");
         assertEq(uint256(poolB.policy(treatyId).status), uint256(PolicyPool.Status.Armed), "the treaty survives");
         assertTrue(poolA.underReserved() == false, "one policy, so releasing its retention squares the book");
+    }
+
+    /* ── A signature is not authority over an arbitrary address ── */
+
+    /**
+     * `Attestation.pool` is whatever the signer says it is. A leaked attestor key
+     * could name a contract of its own, have `policy()` claim Bastion Re reinsures
+     * it, and get the adjudicator — which holds `ADJUDICATOR_ROLE` on Pool B — to
+     * discharge a real treaty and burn real capital.
+     *
+     * The signature would be valid. The digest would be fresh. Only the pool
+     * allowlist stops it.
+     */
+    function test_AnAttestationCannotNameAPoolWeDoNotRun() public {
+        HostilePool hostile = new HostilePool(address(poolB), treatyId, ORDER_JOB);
+
+        ClaimsAdjudicator.Attestation memory a = _cleanRejection();
+        a.pool = address(hostile);
+        bytes[] memory sigs = _oneSig(a); // signed by a real, authorised attestor
+
+        vm.expectRevert(abi.encodeWithSelector(ClaimsAdjudicator.UnknownPool.selector, address(hostile)));
+        adj.discharge(a, sigs);
+
+        assertEq(uint256(poolB.policy(treatyId).status), uint256(PolicyPool.Status.Armed), "the treaty survives");
+        assertEq(poolB.claimsPaid(), 0, "not a cent of Bastion Re's capital moved");
+    }
+
+    /// And the same door is shut on the manual path.
+    function test_DisputeDischargeIsAlsoPoolGated() public {
+        HostilePool hostile = new HostilePool(address(poolB), treatyId, ORDER_JOB);
+
+        vm.prank(resolver);
+        vm.expectRevert(abi.encodeWithSelector(ClaimsAdjudicator.UnknownPool.selector, address(hostile)));
+        adj.dischargeDisputed(address(hostile), 1, "nice try");
+    }
+
+    function test_PoolCanBeDeregistered() public {
+        bytes32 role = poolA.ADJUDICATOR_ROLE();
+        assertTrue(adj.isRegisteredPool(address(poolA)));
+
+        vm.prank(admin);
+        adj.setPool(address(poolA), false);
+
+        ClaimsAdjudicator.Attestation memory a = _cleanRejection();
+        bytes[] memory sigs = _oneSig(a);
+        vm.expectRevert(abi.encodeWithSelector(ClaimsAdjudicator.UnknownPool.selector, address(poolA)));
+        adj.discharge(a, sigs);
+
+        // The pool still trusts the adjudicator; the adjudicator has stopped acting.
+        assertTrue(poolA.hasRole(role, address(adj)));
     }
 
     /* ── Housekeeping ────────────────────────────────────────── */

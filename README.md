@@ -18,11 +18,11 @@ This is a hackathon build in progress. Being precise about what exists matters m
 | **`dashboard/lib/risk-engine.ts`** | ✅ **Complete** | The actual pricing model. Pure functions, fully specified. This is the reference implementation `RiskEngine.sol` mirrors — and `forge test` holds the two together. |
 | **`dashboard/lib/data.ts`** | ⚠️ **Deterministic fixture** | The dashboard reads a fixture, **not** live chain state. Premiums in it are computed by the real risk engine, not hand-typed. Swapping in viem/wagmi reads requires no component changes. |
 | **`contracts/src/RiskEngine.sol`** | ✅ **Written · 18 tests** | Fixed-point port of `risk-engine.ts`. `forge test` pins it to the worked examples below, and fuzzes the solvency invariant across the whole input space. |
-| **`contracts/src/PolicyPool.sol`** | ✅ **Written · 20 tests** | The vault, the ERC-721 policy, the cede, the discharge, the cascade. One contract serves both layers: a reinsurance treaty is just a policy whose beneficiary is another pool. |
-| **`contracts/src/ClaimsAdjudicator.sol`** | ✅ **Written · 16 tests** | EIP-712 attestation, k-of-n attestors, replay protection, best-effort cascade — and the gate that refuses to auto-pay a claim whose beneficiary pulled the trigger. |
+| **`contracts/src/PolicyPool.sol`** | ✅ **Written · 21 tests** | The vault, the ERC-721 policy, the cede, the discharge, the cascade. One contract serves both layers: a reinsurance treaty is just a policy whose beneficiary is another pool. |
+| **`contracts/src/ClaimsAdjudicator.sol`** | ✅ **Written · 19 tests** | EIP-712 attestation, k-of-n attestors, replay protection, best-effort cascade — and the gate that refuses to auto-pay a claim whose beneficiary pulled the trigger. |
 | **`agents/src/`** | ✅ **Written, typechecks** | Four CAP agents and the Watcher. `npm run verify-wiring` checks the hand-written ABIs and the EIP-712 struct against a live deployment. |
 
-**Nothing is deployed and nothing has run against real CAP.** No contract addresses, no live agents on the CROO Agent Store, no SDK-Keys. `forge test` is green (54 tests), `tsc --noEmit` is clean, and the whole stack has been deployed to a local `anvil` and verified end to end — but the CAP integration itself is unexercised, because the two blockers in **Open questions** below are not resolved. The numbers on the dashboard are still a fixture.
+**Nothing is deployed and nothing has run against real CAP.** No contract addresses, no live agents on the CROO Agent Store, no SDK-Keys. `forge test` is green (58 tests), `tsc --noEmit` is clean, and the whole stack has been deployed to a local `anvil` and verified end to end — but the CAP integration itself is unexercised, because the two blockers in **Open questions** below are not resolved. The numbers on the dashboard are still a fixture.
 
 See [DESIGN.md](DESIGN.md) for the full design document (written in Indonesian), including SDK findings and open questions.
 
@@ -154,6 +154,8 @@ reliability = completed / (completed + rejected + expired)
 
 That constraint turned out to be a feature: the index is a product in its own right, publishable and sellable to any other agent.
 
+It also has a consequence worth knowing before demo day. `reliabilityOf(0, 0, 0)` is **zero** — an agent with no completed orders is not prime, it is unproven — and zero is far below the 60% floor. So a freshly listed Worker cannot be insured at all, and `npm run demo` will stop at the quote with *"declined by the RiskEngine."* That is correct behaviour, not a bug. `npm run seed` runs a few jobs to completion first so the index has something to read.
+
 ### Worked examples
 
 | Reliability | Expected loss | Premium | Rate | Solvency multiple | Insurable? |
@@ -250,7 +252,7 @@ halon/
 ├── README.md              this file
 ├── contracts/             Foundry — RiskEngine, PolicyPool, ClaimsAdjudicator
 │   ├── src/               ✅ all three
-│   ├── test/              ✅ 54 tests, 4 of them fuzz properties
+│   ├── test/              ✅ 58 tests, 4 of them fuzz properties
 │   ├── script/Deploy.s.sol
 │   └── remappings.txt
 ├── agents/                Node + CAP SDK — 4 agents + watcher
@@ -260,8 +262,11 @@ halon/
 │   │   ├── client.ts      Meridian Capital — the buyer, and the demo driver
 │   │   ├── underwriter-a.ts  Sentinel — sells cover, then hedges itself
 │   │   ├── underwriter-b.ts  Bastion Re — the layer under the layer
-│   │   └── watcher.ts     signs the attestation, refuses the bad ones
-│   ├── scripts/verify-wiring.ts   ABIs + EIP-712 vs a live deployment
+│   │   ├── watcher.ts     signs the attestation, refuses the bad ones
+│   │   └── seed.ts        an agent with no history cannot be insured
+│   ├── scripts/
+│   │   ├── verify-wiring.ts    ABIs + EIP-712 vs a live deployment
+│   │   └── deposit-capital.ts  approve + depositCapital, both pools
 │   └── .env.example
 └── dashboard/             Next.js 16 + Tailwind 4
     ├── app/
@@ -324,22 +329,30 @@ cd agents
 npm install
 cp .env.example .env      # SDK-Keys, service ids, the addresses from the deploy
 npm run typecheck
-npm run verify-wiring     # ABIs + EIP-712 against the deployment. Do this first.
 ```
 
-Then four long-lived processes, each needing its own terminal (or `pm2`, or a container):
+Requires **Node 20+**. Then, in this order — each step exists because skipping it fails somewhere unhelpful:
 
 ```bash
-npm run worker          # Aurora  — accepts jobs, drops WORKER_FAIL_RATE of them
-npm run underwriter-a   # Sentinel — quotes, binds, auto-hedges
-npm run underwriter-b   # Bastion Re — accepts treaties
-npm run watcher         # signs attestations, discharges claims
-npm run demo            # Meridian — drives one policy end to end
+npm run verify-wiring    # 1. ABIs + EIP-712 + the pool allowlist, against the deployment
+npm run deposit-capital  # 2. an empty pool binds nothing
+
+npm run worker           # 3. four long-lived processes, one terminal each
+npm run underwriter-a    #    (or pm2, or a container)
+npm run underwriter-b
+npm run watcher
+
+npm run seed             # 4. give the worker a history, or it is uninsurable
+npm run demo             # 5. Meridian drives one policy end to end
 ```
 
-Requires **Node 20+**. `verify-wiring` exists because two things in `src/lib/abi.ts` are written by hand and fail *quietly*: the ABI signatures and the EIP-712 struct. A reordered field still encodes, still signs, and still submits — the contract just recovers a stranger's address and reverts with `NotAnAttestor`, three hours into a demo. So we ask a live deployment instead of trusting either by eye. Point it at `anvil` before you point it at Base.
+`verify-wiring` exists because two things in `src/lib/abi.ts` are written by hand and fail *quietly*: the ABI signatures and the EIP-712 struct. A reordered field still encodes, still signs, and still submits — the contract just recovers a stranger's address and reverts with `NotAnAttestor`, three hours into a demo. So we ask a live deployment instead of trusting either by eye. Point it at `anvil` before you point it at Base.
 
-> **The Watcher holds a WebSocket.** So do the three provider agents — a negotiation they miss expires. None of them can run on serverless. They need an always-on host (a small VPS, Fly, Railway); the dashboard is the only piece Vercel can serve.
+`deposit-capital` matters because `bindDirect` requires **free capital of at least the whole coverage**: at bind time the policy has no reinsurance yet, so the pool is on the hook for all of it. Pool A needs more than it intends to write.
+
+`seed` matters because of the cold start above. Run it with `WORKER_FAIL_RATE=0`, then raise the fail rate before the demo, so the index has somewhere to fall to.
+
+> **The Watcher holds a WebSocket.** So do the three provider agents — a negotiation they miss expires. None of them can run on serverless. They need an always-on host (a small VPS, Fly, Railway); the dashboard is the only piece Vercel can serve. `DEPLOYER_PRIVATE_KEY` holds `DEFAULT_ADMIN_ROLE` forever and must **not** be one of the keys you ship there.
 
 ---
 

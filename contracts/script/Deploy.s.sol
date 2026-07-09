@@ -43,6 +43,10 @@ contract Deploy is Script {
 
         adjudicator.grantRole(adjudicator.ATTESTOR_ROLE(), attestor);
         adjudicator.grantRole(adjudicator.DISPUTE_RESOLVER_ROLE(), deployer);
+        // An attestation may only name a pool we run. Without this, a leaked attestor
+        // key can point the adjudicator at a pool of its own making.
+        adjudicator.setPool(address(poolA), true);
+        adjudicator.setPool(address(poolB), true);
 
         poolA.grantRole(poolA.UNDERWRITER_ROLE(), underwriterA);
         poolA.grantRole(poolA.CAPITAL_ROLE(), underwriterA);

@@ -19,21 +19,49 @@ export function holdOpen(stream: EventStream, onClose?: () => void) {
   process.on("SIGTERM", shutdown);
 }
 
-/** Resolve the first event of `type` that satisfies `match`. */
-export function nextEvent(
-  stream: EventStream,
-  type: string,
-  match: (e: Event) => boolean,
-  timeoutMs = 180_000,
-): Promise<Event> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Timed out waiting for ${type}`)), timeoutMs);
-    stream.on(type, (event) => {
-      if (!match(event)) return;
-      clearTimeout(timer);
-      resolve(event);
-    });
+export type EventWaiter = (match: (e: Event) => boolean, timeoutMs?: number) => Promise<Event>;
+
+/**
+ * Wait for events of one type, any number of times, with **one** handler.
+ *
+ * `EventStream.on` appends a handler and the SDK offers no way to remove one. So a
+ * `nextEvent()`-per-await leaks a handler for every policy the agent writes, and the
+ * ones left behind keep firing into resolved promises. Sentinel is a long-lived
+ * process; that is a slow leak, not a hypothetical.
+ *
+ * Register once. Fan the event out to whoever is waiting, and drop them as they go.
+ */
+export function eventWaiter(stream: EventStream, type: string): EventWaiter {
+  interface Pending {
+    match: (e: Event) => boolean;
+    settle: (e: Event) => void;
+  }
+  const pending = new Set<Pending>();
+
+  stream.on(type, (event) => {
+    for (const waiter of [...pending]) {
+      if (!waiter.match(event)) continue;
+      pending.delete(waiter);
+      waiter.settle(event);
+    }
   });
+
+  return (match, timeoutMs = 180_000) =>
+    new Promise<Event>((resolve, reject) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const waiter: Pending = {
+        match,
+        settle: (event) => {
+          clearTimeout(timer);
+          resolve(event);
+        },
+      };
+      timer = setTimeout(() => {
+        pending.delete(waiter);
+        reject(new Error(`Timed out waiting for ${type}`));
+      }, timeoutMs);
+      pending.add(waiter);
+    });
 }
 
 const PAGE_SIZE = 100;

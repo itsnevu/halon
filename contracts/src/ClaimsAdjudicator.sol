@@ -109,11 +109,27 @@ contract ClaimsAdjudicator is AccessControl, ReentrancyGuard, EIP712 {
     /// @notice Signatures required on an attestation. One today; raise it, not the code.
     uint256 public threshold = 1;
 
+    /**
+     * @notice Pools this contract will act on.
+     * @dev    `Attestation.pool` is chosen by whoever signs, and `_settleClaim` then
+     *         reads `policy().reinsurer` out of that pool and calls `discharge` on it
+     *         holding `ADJUDICATOR_ROLE`. An attestor whose key leaked could therefore
+     *         name a pool of its own making, have `policy()` return our real Pool B and
+     *         any armed treaty id, and burn that treaty along with Bastion Re's capital.
+     *
+     *         Nothing above stops it — the signature is valid, the digest is fresh.
+     *         So the entry point is restricted to pools we run. The reinsurer address
+     *         is not checked separately: it comes out of a registered pool's own
+     *         storage, which is the thing we already trust.
+     */
+    mapping(address pool => bool) public isRegisteredPool;
+
     mapping(bytes32 digest => bool) public attestationUsed;
 
     /* ── Events ──────────────────────────────────────────────── */
 
     event ThresholdChanged(uint256 threshold);
+    event PoolRegistered(address indexed pool, bool registered);
     event ClaimDischarged(
         address indexed pool, uint256 indexed policyId, Outcome outcome, uint256 indemnity, bytes32 digest
     );
@@ -135,6 +151,7 @@ contract ClaimsAdjudicator is AccessControl, ReentrancyGuard, EIP712 {
     error OrderPolicyMismatch(bytes32 policyOrderId, bytes32 attestedOrderId);
     error DeliveredThenRefused(address pool, uint256 policyId, bytes32 contentHash);
     error ThresholdMustBePositive();
+    error UnknownPool(address pool);
 
     constructor(address admin) EIP712("HALON", "1") {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -146,6 +163,12 @@ contract ClaimsAdjudicator is AccessControl, ReentrancyGuard, EIP712 {
         if (newThreshold == 0) revert ThresholdMustBePositive();
         threshold = newThreshold;
         emit ThresholdChanged(newThreshold);
+    }
+
+    /// @notice Allow (or stop) this contract acting on a pool. See `isRegisteredPool`.
+    function setPool(address pool, bool registered) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        isRegisteredPool[pool] = registered;
+        emit PoolRegistered(pool, registered);
     }
 
     /* ── Views ───────────────────────────────────────────────── */
@@ -186,6 +209,7 @@ contract ClaimsAdjudicator is AccessControl, ReentrancyGuard, EIP712 {
         nonReentrant
         returns (uint256 indemnity)
     {
+        if (!isRegisteredPool[a.pool]) revert UnknownPool(a.pool);
         // forge-lint: disable-next-line(block-timestamp)
         if (a.observedAt > block.timestamp) revert AttestationFromTheFuture(a.observedAt);
         // forge-lint: disable-next-line(block-timestamp)
@@ -232,6 +256,7 @@ contract ClaimsAdjudicator is AccessControl, ReentrancyGuard, EIP712 {
         nonReentrant
         returns (uint256 indemnity)
     {
+        if (!isRegisteredPool[pool]) revert UnknownPool(pool);
         PolicyPool p = PolicyPool(pool);
         PolicyPool.Policy memory policy = p.policy(policyId);
         if (policy.status != PolicyPool.Status.Armed) revert PolicyNotArmed(pool, policyId);

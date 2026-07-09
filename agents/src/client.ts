@@ -2,7 +2,7 @@ import { EventType } from "@croo-network/sdk";
 import { erc20Abi } from "viem";
 
 import { policyPoolAbi, PolicyStatus } from "./lib/abi";
-import { capClient, nextEvent, reliabilityBpsOf } from "./lib/cap";
+import { capClient, eventWaiter, reliabilityBpsOf } from "./lib/cap";
 import { bps, log, orderKey, publicClient, usd, waitFor } from "./lib/chain";
 import { boolOr, need, needAddress, numberOr } from "./lib/env";
 
@@ -34,17 +34,14 @@ async function main() {
   const shouldReject = boolOr("DEMO_REJECT", false);
 
   const stream = await cap.connectWebSocket();
+  const orderCreated = eventWaiter(stream, EventType.OrderCreated);
 
   /* 1 ── Negotiate the hire. The worker accepts; the order id now exists. */
   const jobNegotiation = await cap.negotiateOrder({
     serviceId: workerServiceId,
     requirements: JSON.stringify({ task: "quarterly revenue analysis" }),
   });
-  const jobCreated = await nextEvent(
-    stream,
-    EventType.OrderCreated,
-    (e) => e.negotiation_id === jobNegotiation.negotiationId,
-  );
+  const jobCreated = await orderCreated((e) => e.negotiation_id === jobNegotiation.negotiationId);
   const jobOrderId = jobCreated.order_id!;
   log(SCOPE, `job order ${jobOrderId} created (unpaid)`);
 
@@ -79,11 +76,7 @@ async function main() {
       tenorHours,
     }),
   });
-  const coverCreated = await nextEvent(
-    stream,
-    EventType.OrderCreated,
-    (e) => e.negotiation_id === coverNegotiation.negotiationId,
-  );
+  const coverCreated = await orderCreated((e) => e.negotiation_id === coverNegotiation.negotiationId);
   await cap.payOrder(coverCreated.order_id!);
   log(SCOPE, `paid ${usd(quote.premium)} — premium is now in the pool`);
 

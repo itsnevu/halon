@@ -118,6 +118,15 @@ async function main() {
 
   check("threshold", await client.readContract({ address: adjudicator, abi: claimsAdjudicatorAbi, functionName: "threshold" }), 1n);
 
+  // Easy to forget, and its absence is invisible until a claim silently reverts.
+  for (const [label, pool] of [["Pool A", poolA], ["Pool B", address("POLICY_POOL_B")]] as const) {
+    check(
+      `${label} is registered with the adjudicator`,
+      await client.readContract({ address: adjudicator, abi: claimsAdjudicatorAbi, functionName: "isRegisteredPool", args: [pool] }),
+      true,
+    );
+  }
+
   console.log("\nClaimsAdjudicator — the moral-hazard gate");
   const autoPayable = (outcome: number, deliverySubmitted: boolean, contentHash: Hex) =>
     client.readContract({

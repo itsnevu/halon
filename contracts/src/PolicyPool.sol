@@ -164,6 +164,16 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
      */
     address public cedeRecipient;
 
+    /**
+     * @notice Treaties this pool has already leaned on.
+     * @dev    `AlreadyReinsured` guards a policy against having two treaties. This
+     *         guards a treaty against backing two policies — without it, attaching
+     *         the same treaty twice releases `cededCoverage` twice, and the pool
+     *         writes more cover than the layer beneath it is standing behind. The
+     *         money is still there; the capacity is not.
+     */
+    mapping(address reinsurer => mapping(uint256 treatyId => bool)) public treatyAttached;
+
     uint256 public nextPolicyId;
     mapping(uint256 policyId => Policy) private _policies;
     /// @notice Insured CAP order → policy id. One policy per job. Ids start at 1, so
@@ -207,6 +217,7 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
     error ClaimWindowClosed(uint256 policyId);
     error ClaimWindowOpen(uint256 policyId);
     error AlreadyReinsured(uint256 policyId);
+    error TreatyAlreadyAttached(address reinsurer, uint256 treatyId);
     error CededPremiumAlreadyDrawn(uint256 policyId);
     error CedeRecipientUnset();
     error SelfReinsurance();
@@ -457,11 +468,14 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
     function attachReinsurance(uint256 policyId, address reinsurer, uint256 treatyId)
         external
         onlyRole(UNDERWRITER_ROLE)
+        nonReentrant
     {
         Policy storage p = _policies[policyId];
         if (p.status != Status.Armed) revert PolicyNotArmed(policyId);
         if (p.reinsurer != address(0)) revert AlreadyReinsured(policyId);
         if (reinsurer == address(this) || reinsurer == address(0)) revert SelfReinsurance();
+        // One treaty backs one policy. See `treatyAttached`.
+        if (treatyAttached[reinsurer][treatyId]) revert TreatyAlreadyAttached(reinsurer, treatyId);
 
         PolicyPool re = PolicyPool(reinsurer);
         if (re.ownerOf(treatyId) != address(this)) revert TreatyNotHeld(reinsurer, treatyId);
@@ -471,6 +485,7 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
         if (t.coverage == 0 || t.coverage > p.coverage) revert TreatyExceedsCoverage(t.coverage, p.coverage);
         if (t.expiresAt < p.expiresAt) revert TreatyLapsesFirst(t.expiresAt, p.expiresAt);
 
+        treatyAttached[reinsurer][treatyId] = true;
         p.reinsurer = reinsurer;
         p.reinsurancePolicyId = treatyId;
         p.cededCoverage = t.coverage;

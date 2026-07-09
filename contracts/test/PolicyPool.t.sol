@@ -284,6 +284,37 @@ contract PolicyPoolTest is Test {
         poolA.attachReinsurance(pid, address(poolB), tid);
     }
 
+    /**
+     * `AlreadyReinsured` stops one policy taking two treaties. This is the other
+     * direction: one treaty backing two policies. Both attaches release
+     * `cededCoverage`, so Pool A frees 2× the capacity Bastion Re is standing
+     * behind — and only discovers it when the second cascade fails.
+     */
+    function test_OneTreatyCannotBackTwoPolicies() public {
+        (uint256 p1, uint256 drawn) = _bindAndCede();
+        RiskEngine.Quote memory q = _quoteA();
+        uint256 cededCoverage = COVER - q.netRetention;
+
+        vm.prank(uwB);
+        uint256 tid = poolB.bindTreaty(_params(address(poolA), cededCoverage, drawn, TENOR, ORDER_B));
+
+        vm.prank(uwA);
+        poolA.attachReinsurance(p1, address(poolB), tid);
+        assertEq(poolA.lockedCapital(), q.netRetention);
+
+        // A second policy, and the underwriter points it at the treaty already spent.
+        RiskEngine.Quote memory q2 = _quoteA();
+        _payPremium(poolA, client, q2.premium);
+        vm.startPrank(uwA);
+        uint256 p2 = poolA.bindDirect(_params(client, COVER, q2.premium, TENOR, ORDER_C));
+
+        vm.expectRevert(abi.encodeWithSelector(PolicyPool.TreatyAlreadyAttached.selector, address(poolB), tid));
+        poolA.attachReinsurance(p2, address(poolB), tid);
+        vm.stopPrank();
+
+        assertEq(poolA.lockedCapital(), q.netRetention + COVER, "the second policy is still fully reserved");
+    }
+
     function test_CededPremiumCanOnlyBeDrawnOnce() public {
         (uint256 pid,) = _bindAndCede();
         vm.prank(uwA);

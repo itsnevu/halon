@@ -81,6 +81,7 @@ async function main() {
       const orderId = event.order_id!;
       const terms = accepted.get(orderId);
       if (!terms) return; // not ours
+      accepted.delete(orderId);
 
       try {
         const treatyId = await send<bigint>(
