@@ -1,15 +1,18 @@
 {
-  "name": "agents",
+  "name": "halon-agents",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "description": "HALON — the four CAP agents and the Watcher",
   "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "verify-wiring": "tsx scripts/verify-wiring.ts",
+    "worker": "tsx src/worker.ts",
+    "underwriter-a": "tsx src/underwriter-a.ts",
+    "underwriter-b": "tsx src/underwriter-b.ts",
+    "watcher": "tsx src/watcher.ts",
+    "demo": "tsx src/client.ts"
+  },
   "dependencies": {
     "@croo-network/sdk": "^0.2.1",
     "dotenv": "^17.4.2",

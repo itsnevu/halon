@@ -38,6 +38,20 @@
  * never the loading — a shorter window cannot make a coin flip cheaper than the
  * coin flip.
  *
+ * ── The invariant the first one does not buy you ──────────────────────────
+ * Solvency for *us* is not solvency for the reinsurer. B absorbs `cededShare`
+ * of the loss but is paid only `cededShare × (1 − cedingCommission)` of the
+ * premium. Solve for when it clears zero and `cededShare` cancels off both
+ * sides, leaving a condition on the loading alone:
+ *
+ *     premium × (1 − cedingCommission) ≥ expectedLoss
+ *
+ * `riskLoad` is a function of `rejectionHazard`, but a long tenor inflates
+ * `expectedLoss` without touching it — so past ~1,400 hours the loading thins
+ * below the 10% commission and B is underwater on a policy that cleared both
+ * the reliability floor *and* the rate cap. `RiskEngine.t.sol` found this by
+ * fuzzing. We decline those. See `loadingTooThin`.
+ *
  * ── Not DESIGN.md's numbers ──────────────────────────────────────────────
  * DESIGN.md §6 illustrates a $100 job at 80% reliability with a $5 premium.
  * Expected loss on that policy is $20. Charging $5 bleeds the pool dry. The
@@ -111,7 +125,7 @@ export interface Quote {
   utilFactor: number;
   expenseFeeUsd: number;
 
-  /** What the client pays. */
+  /** What the client pays, rounded to the cent for display. */
   premiumUsd: number;
   /** premium / coverage, in basis points. */
   rateBps: number;
@@ -121,6 +135,12 @@ export interface Quote {
   solvencyMultiple: number;
   /** The technical premium blew through MAX_RATE — we decline rather than cap. */
   rateCapped: boolean;
+  /**
+   * The loading over expected loss is thinner than the ceding commission, so the
+   * reinsurer would take its quota share at a structural loss. Declined. In
+   * practice this only bites on very long tenors.
+   */
+  loadingTooThin: boolean;
 
   /** ── Reinsurance leg (Pool A → Pool B) ── */
   cededShare: number;
@@ -175,12 +195,27 @@ export function quote(input: QuoteInput): Quote {
   const expectedLossUsd = coverageUsd * totalHazard;
   const expenseFeeUsd = Math.max(MIN_EXPENSE_USD, EXPENSE_RATE * coverageUsd);
 
-  // premium ≥ expectedLoss + expenseFee > expectedLoss, for every input.
-  const premiumUsd = round2(expectedLossUsd * (1 + riskLoad) * utilFactor + expenseFeeUsd);
+  /**
+   * Full precision. premium ≥ expectedLoss + expenseFee > expectedLoss, always.
+   *
+   * `RiskEngine.sol` works in micro-USDC and never rounds, so every figure below
+   * is derived from *this* and rounded exactly once, at the end. Deriving them
+   * from `premiumUsd` instead would subtract one rounded number from another,
+   * which is not the same as rounding a subtraction — and the chain is the side
+   * that actually moves the USDC.
+   */
+  const premiumRawUsd = expectedLossUsd * (1 + riskLoad) * utilFactor + expenseFeeUsd;
+  const premiumUsd = round2(premiumRawUsd);
 
-  const rateCapped = coverageUsd > 0 && premiumUsd > coverageUsd * MAX_RATE;
+  const cededPremiumRawUsd = premiumRawUsd * CEDED_SHARE * (1 - CEDING_COMMISSION);
+  const netPremiumRawUsd = premiumRawUsd - cededPremiumRawUsd;
+
   const belowFloor = reliability < RELIABILITY_FLOOR;
-  const insurable = coverageUsd > 0 && !belowFloor && !rateCapped;
+  const rateCapped = coverageUsd > 0 && premiumRawUsd > coverageUsd * MAX_RATE;
+  // See the header: `cededShare` cancels, leaving a condition on the loading alone.
+  const loadingTooThin =
+    coverageUsd > 0 && premiumRawUsd * (1 - CEDING_COMMISSION) < expectedLossUsd;
+  const insurable = coverageUsd > 0 && !belowFloor && !rateCapped && !loadingTooThin;
 
   let declineReason: string | undefined;
   if (coverageUsd <= 0) {
@@ -193,17 +228,21 @@ export function quote(input: QuoteInput): Quote {
     declineReason = `Technical premium exceeds the ${(MAX_RATE * 100).toFixed(
       0,
     )}% rate-on-line cap`;
+  } else if (loadingTooThin) {
+    declineReason = `Loading is too thin to fund the ${(CEDING_COMMISSION * 100).toFixed(
+      0,
+    )}% ceding commission — the reinsurer would take its quota share at a loss`;
   }
 
-  const cededPremiumUsd = round2(premiumUsd * CEDED_SHARE * (1 - CEDING_COMMISSION));
-  const netPremiumUsd = round2(premiumUsd - cededPremiumUsd);
+  const cededPremiumUsd = round2(cededPremiumRawUsd);
+  const netPremiumUsd = round2(netPremiumRawUsd);
   const netRetentionUsd = round2(coverageUsd * (1 - CEDED_SHARE));
 
-  // Expected P&L per policy, per layer. Both must be positive or the market
-  // has no reason to exist.
-  const underwriterMarginUsd = round2(netPremiumUsd - netRetentionUsd * totalHazard);
+  // Expected P&L per policy, per layer. For an insurable quote both clear zero:
+  // Pool A structurally, Pool B by way of the `loadingTooThin` guard above.
+  const underwriterMarginUsd = round2(netPremiumRawUsd - netRetentionUsd * totalHazard);
   const reinsurerMarginUsd = round2(
-    cededPremiumUsd - coverageUsd * CEDED_SHARE * totalHazard,
+    cededPremiumRawUsd - coverageUsd * CEDED_SHARE * totalHazard,
   );
 
   return {
@@ -219,10 +258,11 @@ export function quote(input: QuoteInput): Quote {
     utilFactor,
     expenseFeeUsd: round2(expenseFeeUsd),
     premiumUsd,
-    rateBps: coverageUsd > 0 ? Math.round((premiumUsd / coverageUsd) * 10_000) : 0,
-    loadingUsd: round2(premiumUsd - expectedLossUsd),
-    solvencyMultiple: expectedLossUsd > 0 ? premiumUsd / expectedLossUsd : Infinity,
+    rateBps: coverageUsd > 0 ? Math.round((premiumRawUsd / coverageUsd) * 10_000) : 0,
+    loadingUsd: round2(premiumRawUsd - expectedLossUsd),
+    solvencyMultiple: expectedLossUsd > 0 ? premiumRawUsd / expectedLossUsd : Infinity,
     rateCapped,
+    loadingTooThin,
     cededShare: CEDED_SHARE,
     cededPremiumUsd,
     netRetentionUsd,

@@ -21,8 +21,8 @@ import type {
   ProtocolStats,
   TxHash,
 } from "./types";
-import { poolUtilization, quote, reliabilityOf } from "./risk-engine";
-import { usd } from "./format";
+import { RELIABILITY_FLOOR, poolUtilization, quote, reliabilityOf } from "./risk-engine";
+import { pct, usd } from "./format";
 
 /* ── deterministic pseudo-hex, so hashes look real and never change ── */
 
@@ -487,6 +487,13 @@ const DEMO = quote({
   utilization: UTIL_A,
 });
 
+/**
+ * The one agent the book refuses. Both its reliability and the floor it misses
+ * are read from the model, so the prose in the feed cannot drift away from what
+ * `quote()` would actually do to it.
+ */
+const DECLINED = AGENTS.find((a) => a.id === "cap:agent:nomad")!;
+
 const BLOCK = 24_918_400;
 
 export const EVENTS: ChainEvent[] = [
@@ -643,7 +650,7 @@ export const EVENTS: ChainEvent[] = [
     kind: "order_expired",
     agoSeconds: 10_800,
     title: "Nomad Scraper blew its SLA deadline",
-    detail: "Uninsured. Declined at bind, reliability 41.0% is under the 45% floor. The client eats it.",
+    detail: `Uninsured. Declined at bind, reliability ${pct(DECLINED.reliability)} is under the ${pct(RELIABILITY_FLOOR, 0)} floor. The client eats it.`,
     amountUsd: 15,
     from: "Nomad Scraper",
     txHash: txHash(4113),
@@ -695,19 +702,38 @@ export const EVENTS: ChainEvent[] = [
 export const DEMO_QUOTE = DEMO;
 export const DEMO_COVERAGE_USD = 250;
 
-/* ── Rollup ─────────────────────────────────────────────────── */
+/* ── Rollup ─────────────────────────────────────────────────────
+   Two layers, two books — and they are not additive.
+
+   Every policy Pool A writes is ceded to Pool B, so A's 18 covers appear a
+   second time inside B's 29. Adding them counts the same risk twice. Likewise
+   only Pool A ever pays a *client*; what Pool B pays goes to an underwriter.
+
+   The fixture is internally consistent about this: `POOL_A.recoveredUsd`
+   ($1,550) is exactly the 50% quota share of `POOL_A.claimsPaidUsd` ($3,100).
+   B's remaining claims went to the other underwriters that cede into it — B
+   reinsures more books than ours, which is why it carries 29 treaties to A's 18.
+
+   A loss ratio *is* additive: it is a ratio over two gross books, not a count
+   of the same risk twice. Everything else here has to pick a layer. */
+
+/** Gross across both books — only meaningful as the numerator/denominator of a ratio. */
+const GROSS_CLAIMS_PAID_USD = POOL_A.claimsPaidUsd + POOL_B.claimsPaidUsd;
+const GROSS_PREMIUMS_EARNED_USD = POOL_A.premiumsEarnedUsd + POOL_B.premiumsEarnedUsd;
 
 export const PROTOCOL_STATS: ProtocolStats = {
   tvlUsd: POOL_A.totalCapitalUsd + POOL_B.totalCapitalUsd,
-  activePolicies: POOL_A.activePolicies + POOL_B.activePolicies,
+  /** Client-facing policies only. B's 29 are reinsurance treaties on these same risks. */
+  activePolicies: POOL_A.activePolicies,
+  /** The whole book. `POLICIES` above enumerates only the most recent few. */
   coverageInForceUsd: 186_400,
-  claimsPaidUsd: POOL_A.claimsPaidUsd + POOL_B.claimsPaidUsd,
-  premiumsEarnedUsd: POOL_A.premiumsEarnedUsd + POOL_B.premiumsEarnedUsd,
+  /** Only Pool A discharges to a client. B discharges to an underwriter. */
+  claimsPaidUsd: POOL_A.claimsPaidUsd,
+  premiumsEarnedUsd: GROSS_PREMIUMS_EARNED_USD,
   agentsInsured: 23,
   uniqueBuyers: 9,
   medianDischargeSeconds: 4.2,
-  cascadeRecoveryUsd: 6_275,
-  lossRatio:
-    (POOL_A.claimsPaidUsd + POOL_B.claimsPaidUsd) /
-    (POOL_A.premiumsEarnedUsd + POOL_B.premiumsEarnedUsd),
+  /** Everything the reinsurance layer has cascaded back up into underwriter pools. */
+  cascadeRecoveryUsd: POOL_B.claimsPaidUsd,
+  lossRatio: GROSS_CLAIMS_PAID_USD / GROSS_PREMIUMS_EARNED_USD,
 };
