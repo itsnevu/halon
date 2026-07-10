@@ -100,7 +100,6 @@ export function Ticker({ className }: { className?: string }) {
       // The mark's own gradient would vanish against the band it sits on;
       // `brightness-0` flattens it to the band's ink colour instead.
       markClassName="brightness-0 opacity-45"
-      tilt
       className={className}
     />
   );
