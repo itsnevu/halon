@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AccessControlDefaultAdminRules} from "@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -66,7 +66,7 @@ import {PolicyPool} from "./PolicyPool.sol";
  * already spent — that is the cedent's credit risk and it is logged, not thrown.
  * The client is paid either way. See `PolicyPool.discharge`.
  */
-contract ClaimsAdjudicator is AccessControl, ReentrancyGuard, EIP712 {
+contract ClaimsAdjudicator is AccessControlDefaultAdminRules, ReentrancyGuard, EIP712 {
     /* ── Roles ───────────────────────────────────────────────── */
 
     /// @notice Signs attestations. The Watcher.
@@ -153,9 +153,7 @@ contract ClaimsAdjudicator is AccessControl, ReentrancyGuard, EIP712 {
     error ThresholdMustBePositive();
     error UnknownPool(address pool);
 
-    constructor(address admin) EIP712("HALON", "1") {
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-    }
+    constructor(address admin) EIP712("HALON", "1") AccessControlDefaultAdminRules(0, admin) {}
 
     /* ── Admin ───────────────────────────────────────────────── */
 

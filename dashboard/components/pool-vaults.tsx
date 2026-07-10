@@ -281,7 +281,7 @@ export function PoolVaults() {
       title="Two pools, stacked."
       lead="Sentinel writes the policy. Bastion Re stands behind Sentinel. Premiums land in these vaults atomically, inside the CAP pay-tx. There is no manual transfer step that can fail halfway."
     >
-      <Reveal className="mb-6 flex flex-wrap gap-x-8 gap-y-2 font-mono text-[0.6875rem] tracking-wide text-mist-dim uppercase">
+      <Reveal className="mb-6 flex flex-wrap gap-x-8 gap-y-2 font-mono text-[0.6875rem] tracking-wide text-mist-dim uppercase p-4 neu rounded-xl">
         <SummaryItem label="Total value locked" value={usdCompact(PROTOCOL_STATS.tvlUsd)} />
         <SummaryItem
           label="Cover in force"

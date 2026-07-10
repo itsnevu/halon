@@ -90,8 +90,7 @@ export function SiteHeader() {
           <div
             aria-hidden="true"
             className={cn(
-              "pointer-events-none absolute inset-0 -z-10 rounded-full border border-line bg-ink/70",
-              "shadow-[0_20px_60px_-24px_rgba(0,0,0,0.95)] backdrop-blur-xl",
+              "pointer-events-none absolute inset-0 -z-10 rounded-full neu shadow-[0_20px_60px_-24px_rgba(0,0,0,0.95)]",
               "transition-opacity duration-500 ease-out",
               scrolled ? "opacity-100" : "opacity-0",
             )}

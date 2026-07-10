@@ -5,8 +5,9 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AccessControlDefaultAdminRules} from "@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 import {RiskEngine} from "./RiskEngine.sol";
 
@@ -56,7 +57,7 @@ import {RiskEngine} from "./RiskEngine.sol";
  * `ClaimsAdjudicator` is what will hold that role, and it is the contract that
  * has to decide what evidence a discharge requires. See README.
  */
-contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
+contract PolicyPool is ERC721, AccessControlDefaultAdminRules, ReentrancyGuard, Pausable, IERC721Receiver {
     using SafeERC20 for IERC20;
 
     /* ── Roles ───────────────────────────────────────────────── */
@@ -230,10 +231,10 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
 
     constructor(IERC20 usdc_, RiskEngine riskEngine_, address admin, string memory name_, string memory symbol_)
         ERC721(name_, symbol_)
+        AccessControlDefaultAdminRules(0, admin)
     {
         usdc = usdc_;
         riskEngine = riskEngine_;
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
     /* ── Views ───────────────────────────────────────────────── */
@@ -282,6 +283,14 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
 
     /* ── Admin ───────────────────────────────────────────────── */
 
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
+    }
+
     /// @notice Point the cede at the Underwriter Agent's CAP wallet. Admin only.
     function setCedeRecipient(address recipient) external onlyRole(DEFAULT_ADMIN_ROLE) {
         cedeRecipient = recipient;
@@ -290,14 +299,14 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
 
     /* ── Capital ─────────────────────────────────────────────── */
 
-    function depositCapital(uint256 amount) external onlyRole(CAPITAL_ROLE) nonReentrant {
+    function depositCapital(uint256 amount) external onlyRole(CAPITAL_ROLE) nonReentrant whenNotPaused {
         usdc.safeTransferFrom(msg.sender, address(this), amount);
         totalCapital += amount;
         emit CapitalDeposited(msg.sender, amount);
     }
 
     /// @notice Locked capital is not yours to take. Armed policies come first.
-    function withdrawCapital(uint256 amount, address to) external onlyRole(CAPITAL_ROLE) nonReentrant {
+    function withdrawCapital(uint256 amount, address to) external onlyRole(CAPITAL_ROLE) nonReentrant whenNotPaused {
         uint256 free = freeCapital();
         if (amount > free) revert InsufficientFreeCapital(amount, free);
         totalCapital -= amount;
@@ -340,6 +349,7 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
         external
         onlyRole(UNDERWRITER_ROLE)
         nonReentrant
+        whenNotPaused
         returns (uint256 policyId)
     {
         return _bind(p, Kind.Direct);
@@ -363,6 +373,7 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
         external
         onlyRole(UNDERWRITER_ROLE)
         nonReentrant
+        whenNotPaused
         returns (uint256 policyId)
     {
         return _bind(p, Kind.Treaty);
@@ -559,7 +570,7 @@ contract PolicyPool is ERC721, AccessControl, ReentrancyGuard, IERC721Receiver {
         return IERC721Receiver.onERC721Received.selector;
     }
 
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, AccessControl) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721, AccessControlDefaultAdminRules) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }
