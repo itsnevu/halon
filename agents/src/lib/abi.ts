@@ -19,14 +19,14 @@ export const riskEngineAbi = parseAbi([
 
 export const policyPoolAbi = parseAbi([
   QUOTE,
-  "struct BindParams { address beneficiary; uint256 coverage; uint256 premium; uint256 tenorHours; uint256 reliabilityBps; bytes32 insuredOrderId; bytes32 insuredAgentId; }",
-  "struct Policy { uint8 status; uint8 kind; address beneficiary; uint256 coverage; uint256 premium; uint256 cededCoverage; address reinsurer; uint256 reinsurancePolicyId; bool cededPremiumDrawn; uint256 boundAt; uint256 expiresAt; uint256 reliabilityAtBindBps; bytes32 insuredOrderId; bytes32 insuredAgentId; }",
+  "struct BindParams { address beneficiary; uint256 coverage; uint256 premium; uint256 tenorHours; uint256 reliabilityBps; bytes32 intentId; bytes32 relayerId; }",
+  "struct Policy { uint8 status; uint8 kind; address beneficiary; uint256 coverage; uint256 premium; uint256 cededCoverage; address reinsurer; uint256 reinsurancePolicyId; bool cededPremiumDrawn; uint256 boundAt; uint256 expiresAt; uint256 reliabilityAtBindBps; bytes32 intentId; bytes32 relayerId; }",
   "function bindDirect(BindParams p) returns (uint256)",
   "function bindTreaty(BindParams p) returns (uint256)",
   "function drawCededPremium(uint256 policyId) returns (uint256)",
   "function attachReinsurance(uint256 policyId, address reinsurer, uint256 treatyId)",
   "function policy(uint256 policyId) view returns (Policy)",
-  "function policyByInsuredOrder(bytes32 insuredOrderId) view returns (uint256)",
+  "function policyByIntent(bytes32 intentId) view returns (uint256)",
   "function quoteFor(uint256 reliabilityBps, uint256 coverage, uint256 tenorHours) view returns (Quote)",
   "function utilizationBps() view returns (uint256)",
   "function totalCapital() view returns (uint256)",
@@ -40,7 +40,7 @@ export const policyPoolAbi = parseAbi([
 ]);
 
 export const claimsAdjudicatorAbi = parseAbi([
-  "struct Attestation { address pool; uint256 policyId; bytes32 insuredOrderId; uint8 outcome; bool deliverySubmitted; bytes32 contentHash; uint256 observedAt; }",
+  "struct Attestation { address pool; uint256 policyId; bytes32 intentId; uint8 outcome; bool proofSubmitted; bytes32 contentHash; uint256 observedAt; }",
   "function discharge(Attestation a, bytes[] signatures) returns (uint256)",
   "function hashAttestation(Attestation a) view returns (bytes32)",
   "function isAutoPayable(Attestation a) pure returns (bool)",
@@ -51,8 +51,8 @@ export const claimsAdjudicatorAbi = parseAbi([
 /** `PolicyPool.Status`. Zero is "no such policy", which is why `Armed` is 1. */
 export const PolicyStatus = { None: 0, Armed: 1, Discharged: 2, Settled: 3 } as const;
 
-/** `ClaimsAdjudicator.Outcome`. The two terminal failure states CAP gives an order. */
-export const Outcome = { Rejected: 0, Expired: 1 } as const;
+/** `ClaimsAdjudicator.Outcome`. The two terminal failure states for an intent. */
+export const Outcome = { Failed: 0, Expired: 1 } as const;
 
 /**
  * Field-for-field `ATTESTATION_TYPEHASH`. Order matters: EIP-712 hashes the encoded
@@ -64,9 +64,9 @@ export const ATTESTATION_TYPES = {
   Attestation: [
     { name: "pool", type: "address" },
     { name: "policyId", type: "uint256" },
-    { name: "insuredOrderId", type: "bytes32" },
+    { name: "intentId", type: "bytes32" },
     { name: "outcome", type: "uint8" },
-    { name: "deliverySubmitted", type: "bool" },
+    { name: "proofSubmitted", type: "bool" },
     { name: "contentHash", type: "bytes32" },
     { name: "observedAt", type: "uint256" },
   ],

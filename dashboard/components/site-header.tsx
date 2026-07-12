@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { HalonWordmark } from "@/components/ui/logo";
+import { ConnectKitButton } from "connectkit";
 import { cn } from "@/lib/cn";
 import { NAV, SITE } from "@/lib/site";
 
@@ -102,7 +103,9 @@ export function SiteHeader() {
               aria-label="HALON home"
               className="rounded-sm transition-opacity duration-200 hover:opacity-80"
             >
-              <HalonWordmark eager className="text-[1.375rem] md:text-2xl" />
+              <span className="text-[1.375rem] md:text-2xl font-display font-semibold text-white tracking-tight">
+                Safe<span className="text-lime">Bridge</span>
+              </span>
             </a>
           </div>
 
@@ -141,9 +144,7 @@ export function SiteHeader() {
             >
               Docs
             </ButtonLink>
-            <ButtonLink variant="primary" size="sm" href="#quote">
-              Get a quote
-            </ButtonLink>
+            <ConnectKitButton />
           </div>
 
           <button
@@ -175,7 +176,9 @@ export function SiteHeader() {
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid-bg opacity-30" />
 
           <div className="relative mx-auto flex h-16 w-full max-w-7xl shrink-0 items-center justify-between px-5 sm:px-8 md:h-[4.5rem]">
-            <HalonWordmark className="text-[1.375rem] md:text-2xl" />
+            <span className="text-[1.375rem] md:text-2xl font-display font-semibold text-white tracking-tight">
+              Safe<span className="text-lime">Bridge</span>
+            </span>
             <button
               ref={closeRef}
               type="button"
@@ -218,15 +221,9 @@ export function SiteHeader() {
             >
               Docs
             </ButtonLink>
-            <ButtonLink
-              variant="primary"
-              size="lg"
-              href="#quote"
-              onClick={() => setOpen(false)}
-              className="w-full"
-            >
-              Get a quote
-            </ButtonLink>
+            <div className="w-full flex justify-center">
+              <ConnectKitButton />
+            </div>
           </div>
         </div>
       )}

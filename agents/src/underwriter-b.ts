@@ -26,7 +26,7 @@ interface TreatyTerms {
   cededCoverage: string;
   tenorHours: number;
   reliabilityBps: string;
-  insuredAgentId: string;
+  relayerId: string;
 }
 
 async function main() {
@@ -98,8 +98,8 @@ async function main() {
                 premium: terms.premium,
                 tenorHours: BigInt(terms.tenorHours),
                 reliabilityBps: BigInt(terms.reliabilityBps),
-                insuredOrderId: orderKey(orderId),
-                insuredAgentId: agentKey(terms.insuredAgentId),
+                intentId: orderKey(orderId),
+                relayerId: agentKey(terms.relayerId),
               },
             ],
           },

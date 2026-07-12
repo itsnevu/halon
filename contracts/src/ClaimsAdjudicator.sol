@@ -13,11 +13,10 @@ import {PolicyPool} from "./PolicyPool.sol";
  * @notice Turns a signed observation of a failed CAP order into a discharge, and
  *         cascades the recovery out of the reinsurer's pool on the way.
  *
- * ── Who is allowed to say the worker failed ──────────────────────────────────
+ * ── Who is allowed to say the relayer failed ──────────────────────────────────
  *
- * CAP already has the answer: an order reaches a terminal `rejected` or `expired`
- * status, on-chain, with a `rejectTxHash` and an `slaDeadline`. We do not need an
- * oracle to decide *whether* it failed. What we need is a way to get that fact
+ * The Bridge / Intent Settlement contract already has the answer: an intent reaches a terminal `failed` or `expired`
+ * status, on-chain. We do not need an oracle to decide *whether* it failed. What we need is a way to get that fact
  * into this contract, and for now that is the Watcher: an off-chain process
  * holding `ATTESTOR_ROLE` that signs an EIP-712 `Attestation`.
  *
@@ -29,35 +28,21 @@ import {PolicyPool} from "./PolicyPool.sol";
  *
  * ── The hazard that is not about trusting the Watcher ────────────────────────
  *
- * The Client buys the policy. The Client calls `rejectOrder`. The Client collects
- * the discharge. The beneficiary controls the trigger — and no real book insures
- * a loss the beneficiary can simply declare. Left alone, a Client could hire a
- * worker, receive perfectly good work, reject it anyway, and be paid the coverage
- * on top of whatever CAP refunds from escrow.
+ * The User buys the policy. The beneficiary controls the trigger.
  *
- * CAP hands us the discriminator for free, in a method we already call:
+ * We rely on the `expired` or `failed` status:
  *
- *   `expired`                        the worker blew `slaDeadline`. Nothing the
- *                                    Client did causes this.        → pay in full.
+ *   `expired`                        the relayer blew the deadline.
+ *                                    → pay in full.
  *
- *   `rejected`, no `Delivery` row    the worker never submitted anything. A real
- *                                    delivery failure.              → pay in full.
+ *   `failed`, no proof submitted     the relayer failed to submit proof on time.
+ *                                    → pay in full.
  *
- *   `rejected`, `Delivery` submitted the worker delivered, and the Client refused
- *                                    it. That is a *quality dispute*, not a
- *                                    delivery failure.        → never auto-pay.
+ *   `failed`, invalid proof          the relayer submitted invalid proof.
+ *                                    → never auto-pay (Dispute).
  *
- * So the attestation carries `deliverySubmitted` and the delivery's `contentHash`
- * — straight off `getDelivery(orderId)` — and the third case reverts. It is routed
- * to `dischargeDisputed`, which needs a human with `DISPUTE_RESOLVER_ROLE`. That
- * is a boundary, not a feature, and it is drawn deliberately: automating the one
- * case where the beneficiary controls the trigger is how the pool gets drained.
- *
- * Note what this buys. The Watcher could still lie and report `deliverySubmitted
- * = false`. But that moves the attack from "any client can arbitrage the pool,
- * silently, by exercising a right the protocol gives them" to "the Watcher must
- * commit provable fraud against an on-chain `contentHash` the worker can produce."
- * Those are very different trust surfaces, and only one of them is a business model.
+ * So the attestation carries `proofSubmitted` and `contentHash`.
+ * It is routed to `dischargeDisputed`, which needs a human with `DISPUTE_RESOLVER_ROLE`.
  *
  * ── The cascade is best-effort, the discharge is not ─────────────────────────
  *
@@ -79,9 +64,9 @@ contract ClaimsAdjudicator is AccessControlDefaultAdminRules, ReentrancyGuard, E
 
     /* ── Types ───────────────────────────────────────────────── */
 
-    /// @dev The two terminal failure states CAP gives an order.
+    /// @dev The two terminal failure states for an intent.
     enum Outcome {
-        Rejected,
+        Failed,
         Expired
     }
 
@@ -89,19 +74,19 @@ contract ClaimsAdjudicator is AccessControlDefaultAdminRules, ReentrancyGuard, E
         /// @dev The pool that wrote the policy.
         address pool;
         uint256 policyId;
-        /// @dev Must equal the policy's own `insuredOrderId`. Binds the claim to the order.
-        bytes32 insuredOrderId;
+        /// @dev Must equal the policy's own `intentId`. Binds the claim to the intent.
+        bytes32 intentId;
         Outcome outcome;
-        /// @dev From `getDelivery(orderId)`: did the worker ever submit anything?
-        bool deliverySubmitted;
-        /// @dev The delivery's content hash, or zero when there was no delivery.
+        /// @dev Did the relayer ever submit a proof?
+        bool proofSubmitted;
+        /// @dev The proof's content hash, or zero when there was no proof.
         bytes32 contentHash;
         /// @dev When the Watcher saw the event.
         uint256 observedAt;
     }
 
     bytes32 private constant ATTESTATION_TYPEHASH = keccak256(
-        "Attestation(address pool,uint256 policyId,bytes32 insuredOrderId,uint8 outcome,bool deliverySubmitted,bytes32 contentHash,uint256 observedAt)"
+        "Attestation(address pool,uint256 policyId,bytes32 intentId,uint8 outcome,bool proofSubmitted,bytes32 contentHash,uint256 observedAt)"
     );
 
     /* ── State ───────────────────────────────────────────────── */
@@ -143,13 +128,13 @@ contract ClaimsAdjudicator is AccessControlDefaultAdminRules, ReentrancyGuard, E
     error AttestationFromTheFuture(uint256 observedAt);
     error AttestationStale(uint256 observedAt);
     error AttestationAlreadyUsed(bytes32 digest);
-    error InconsistentDelivery(bool deliverySubmitted, bytes32 contentHash);
+    error InconsistentProof(bool proofSubmitted, bytes32 contentHash);
     error NotEnoughSignatures(uint256 required, uint256 provided);
     error SignaturesNotStrictlyAscending();
     error NotAnAttestor(address signer);
     error PolicyNotArmed(address pool, uint256 policyId);
-    error OrderPolicyMismatch(bytes32 policyOrderId, bytes32 attestedOrderId);
-    error DeliveredThenRefused(address pool, uint256 policyId, bytes32 contentHash);
+    error IntentPolicyMismatch(bytes32 policyIntentId, bytes32 attestedIntentId);
+    error ProofSubmittedThenFailed(address pool, uint256 policyId, bytes32 contentHash);
     error ThresholdMustBePositive();
     error UnknownPool(address pool);
 
@@ -179,9 +164,9 @@ contract ClaimsAdjudicator is AccessControlDefaultAdminRules, ReentrancyGuard, E
                     ATTESTATION_TYPEHASH,
                     a.pool,
                     a.policyId,
-                    a.insuredOrderId,
+                    a.intentId,
                     uint8(a.outcome),
-                    a.deliverySubmitted,
+                    a.proofSubmitted,
                     a.contentHash,
                     a.observedAt
                 )
@@ -191,13 +176,13 @@ contract ClaimsAdjudicator is AccessControlDefaultAdminRules, ReentrancyGuard, E
 
     /// @notice Would this observation be discharged without a human? See the header.
     function isAutoPayable(Attestation calldata a) public pure returns (bool) {
-        return a.outcome == Outcome.Expired || !a.deliverySubmitted;
+        return a.outcome == Outcome.Expired || !a.proofSubmitted;
     }
 
     /* ── The claim ───────────────────────────────────────────── */
 
     /**
-     * @notice Discharge a policy against a signed observation of its order failing.
+     * @notice Discharge a policy against a signed observation of its intent failing.
      * @param  signatures Attestor signatures over `hashAttestation(a)`, ordered by
      *         ascending signer address. Ascending order is what makes them unique:
      *         `threshold` distinct attestors, not one attestor `threshold` times.
@@ -213,10 +198,10 @@ contract ClaimsAdjudicator is AccessControlDefaultAdminRules, ReentrancyGuard, E
         // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp > a.observedAt + ATTESTATION_TTL) revert AttestationStale(a.observedAt);
 
-        // A delivery has a hash, and a hash implies a delivery. Anything else is a
+        // A proof has a hash, and a hash implies a proof. Anything else is a
         // malformed observation and we will not reason about it.
-        if (a.deliverySubmitted == (a.contentHash == bytes32(0))) {
-            revert InconsistentDelivery(a.deliverySubmitted, a.contentHash);
+        if (a.proofSubmitted == (a.contentHash == bytes32(0))) {
+            revert InconsistentProof(a.proofSubmitted, a.contentHash);
         }
 
         bytes32 digest = hashAttestation(a);
@@ -228,13 +213,12 @@ contract ClaimsAdjudicator is AccessControlDefaultAdminRules, ReentrancyGuard, E
         PolicyPool pool = PolicyPool(a.pool);
         PolicyPool.Policy memory p = pool.policy(a.policyId);
         if (p.status != PolicyPool.Status.Armed) revert PolicyNotArmed(a.pool, a.policyId);
-        // Without this, an attestation about *any* failed order would discharge *any*
-        // armed policy. The claim has to be about the order the policy actually covers.
-        if (p.insuredOrderId != a.insuredOrderId) revert OrderPolicyMismatch(p.insuredOrderId, a.insuredOrderId);
+        // Without this, an attestation about *any* failed intent would discharge *any*
+        // armed policy. The claim has to be about the intent the policy actually covers.
+        if (p.intentId != a.intentId) revert IntentPolicyMismatch(p.intentId, a.intentId);
 
-        // The worker delivered and the client refused it. The beneficiary does not
-        // get to declare its own loss. A human decides this one, or nobody does.
-        if (!isAutoPayable(a)) revert DeliveredThenRefused(a.pool, a.policyId, a.contentHash);
+        // The relayer submitted proof and it failed.
+        if (!isAutoPayable(a)) revert ProofSubmittedThenFailed(a.pool, a.policyId, a.contentHash);
 
         indemnity = _settleClaim(pool, a.policyId, p);
         emit ClaimDischarged(a.pool, a.policyId, a.outcome, indemnity, digest);

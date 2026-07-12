@@ -7,25 +7,24 @@ import { bps, log, orderKey, publicClient, usd, waitFor } from "./lib/chain";
 import { boolOr, need, needAddress, numberOr } from "./lib/env";
 
 /**
- * Meridian Capital — the buyer, and the demo driver.
+ * SafeBridge — the buyer, and the demo driver.
  *
- * Note the order of operations, which is not the order the pitch usually implies:
- * the job is **negotiated first**, so that its CAP order id exists, and only then is
- * coverage bought *naming that order*. `PolicyPool.insuredOrderId` is the job order,
- * because that is what `ClaimsAdjudicator` matches a claim against. Buy cover naming
- * the wrong order and no claim can ever pay.
+ * Note the order of operations:
+ * the intent is **submitted first**, so that its CAP order id exists, and only then is
+ * coverage bought *naming that intent*. `PolicyPool.intentId` is the intent order,
+ * because that is what `ClaimsAdjudicator` matches a claim against.
  *
- * The job is paid last. Cover is armed before a cent of it is at risk.
+ * The intent is funded last. Cover is armed before a cent of it is at risk.
  */
-const SCOPE = "meridian";
+const SCOPE = "safebridge";
 
 async function main() {
   const cap = capClient("SDK_KEY_CLIENT");
 
   const poolA = needAddress("POLICY_POOL_A");
   const usdc = needAddress("USDC_ADDRESS");
-  const workerServiceId = need("SERVICE_ID_WORKER");
-  const workerAgentId = need("WORKER_AGENT_ID");
+  const relayerServiceId = need("SERVICE_ID_WORKER");
+  const relayerId = need("WORKER_AGENT_ID");
   const coverageServiceId = need("SERVICE_ID_COVERAGE_A");
 
   const coverage = BigInt(Math.round(numberOr("DEMO_COVERAGE_USD", 1) * 1e6));
@@ -36,17 +35,17 @@ async function main() {
   const stream = await cap.connectWebSocket();
   const orderCreated = eventWaiter(stream, EventType.OrderCreated);
 
-  /* 1 ── Negotiate the hire. The worker accepts; the order id now exists. */
-  const jobNegotiation = await cap.negotiateOrder({
-    serviceId: workerServiceId,
-    requirements: JSON.stringify({ task: "quarterly revenue analysis" }),
+  /* 1 ── Submit the Intent. The relayer accepts; the intent id now exists. */
+  const intentNegotiation = await cap.negotiateOrder({
+    serviceId: relayerServiceId,
+    requirements: JSON.stringify({ task: "bridge 1000 USDC from Base to OP" }),
   });
-  const jobCreated = await orderCreated((e) => e.negotiation_id === jobNegotiation.negotiationId);
-  const jobOrderId = jobCreated.order_id!;
-  log(SCOPE, `job order ${jobOrderId} created (unpaid)`);
+  const intentCreated = await orderCreated((e) => e.negotiation_id === intentNegotiation.negotiationId);
+  const intentId = intentCreated.order_id!;
+  log(SCOPE, `cross-chain intent ${intentId} created (unfunded)`);
 
   /* 2 ── Price the risk, from the same contract the pool will price against. */
-  const reliabilityBps = await reliabilityBpsOf(cap, workerAgentId);
+  const reliabilityBps = await reliabilityBpsOf(cap, relayerId);
   const quote = await publicClient.readContract({
     address: poolA,
     abi: policyPoolAbi,
@@ -55,7 +54,7 @@ async function main() {
   });
   log(
     SCOPE,
-    `${workerAgentId} is ${bps(reliabilityBps)} reliable → ${usd(coverage)} of cover for ` +
+    `${relayerId} is ${bps(reliabilityBps)} reliable → ${usd(coverage)} of cover for ` +
       `${usd(quote.premium)} (${quote.rateBps} bps), expected loss ${usd(quote.expectedLoss)}`,
   );
   if (!quote.insurable) {
@@ -70,8 +69,8 @@ async function main() {
     fundAmount: quote.premium.toString(),
     fundToken: usdc,
     requirements: JSON.stringify({
-      insuredOrderId: jobOrderId,
-      insuredAgentId: workerAgentId,
+      intentId: intentId,
+      relayerId: relayerId,
       coverage: coverage.toString(),
       tenorHours,
     }),
@@ -80,13 +79,13 @@ async function main() {
   await cap.payOrder(coverCreated.order_id!);
   log(SCOPE, `paid ${usd(quote.premium)} — premium is now in the pool`);
 
-  /* 4 ── Watch Sentinel arm the policy, then hedge itself. Nobody asked it to. */
-  const policyId = await waitFor("Sentinel to arm the policy", async () => {
+  /* 4 ── Watch SafeBridge arm the policy, then hedge itself. Nobody asked it to. */
+  const policyId = await waitFor("SafeBridge to arm the policy", async () => {
     const id = await publicClient.readContract({
       address: poolA,
       abi: policyPoolAbi,
-      functionName: "policyByInsuredOrder",
-      args: [orderKey(jobOrderId)],
+      functionName: "policyByIntent",
+      args: [orderKey(intentId)],
     });
     return id === 0n ? undefined : id;
   });
@@ -103,30 +102,30 @@ async function main() {
   });
   log(SCOPE, `auto-hedged: ${usd(hedged.cededCoverage)} ceded to ${hedged.reinsurer}, treaty #${hedged.reinsurancePolicyId}`);
 
-  /* 5 ── Only now is the job funded. */
-  await cap.payOrder(jobOrderId);
-  log(SCOPE, `job order paid. ${usd(coverage)} of exposure, fully covered.`);
+  /* 5 ── Only now is the intent funded. */
+  await cap.payOrder(intentId);
+  log(SCOPE, `intent funded. ${usd(coverage)} of exposure, fully covered.`);
 
   if (!shouldReject) {
     stream.close();
     return;
   }
 
-  /* 6 ── The demo's failure. Reject a job the worker never delivered.
-         If it *did* deliver, the Watcher will refuse to attest — see watcher.ts. */
+  /* 6 ── The demo's failure. Reject an intent the relayer never proved.
+         If it *did* prove, the Watcher will refuse to attest — see watcher.ts. */
   if (rejectAfter > 0) {
-    log(SCOPE, `waiting ${rejectAfter}s before rejecting…`);
+    log(SCOPE, `waiting ${rejectAfter}s before failing intent…`);
     await new Promise((resolve) => setTimeout(resolve, rejectAfter * 1000));
   }
   const before = await publicClient.readContract({
     address: usdc,
     abi: erc20Abi,
     functionName: "balanceOf",
-    args: [(await cap.getOrder(jobOrderId)).requesterWalletAddress as `0x${string}`],
+    args: [(await cap.getOrder(intentId)).requesterWalletAddress as `0x${string}`],
   });
 
-  await cap.rejectOrder(jobOrderId, "no deliverable was ever submitted");
-  log(SCOPE, `rejected ${jobOrderId}. The Watcher should discharge within seconds.`);
+  await cap.rejectOrder(intentId, "no execution proof was ever submitted");
+  log(SCOPE, `failed intent ${intentId}. The Watcher should discharge within seconds.`);
 
   const discharged = await waitFor(
     "the pool to discharge",
@@ -146,7 +145,7 @@ async function main() {
     address: usdc,
     abi: erc20Abi,
     functionName: "balanceOf",
-    args: [(await cap.getOrder(jobOrderId)).requesterWalletAddress as `0x${string}`],
+    args: [(await cap.getOrder(intentId)).requesterWalletAddress as `0x${string}`],
   });
 
   log(SCOPE, `discharged ${usd(discharged.coverage)}. Wallet moved ${usd(after - before)}. Nobody approved it.`);

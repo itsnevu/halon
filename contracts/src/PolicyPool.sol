@@ -111,8 +111,8 @@ contract PolicyPool is ERC721, AccessControlDefaultAdminRules, ReentrancyGuard, 
         uint256 expiresAt;
         /// @dev Pricing is a snapshot. What the agent's index was when we quoted.
         uint256 reliabilityAtBindBps;
-        bytes32 insuredOrderId;
-        bytes32 insuredAgentId;
+        bytes32 intentId;
+        bytes32 relayerId;
     }
 
     struct BindParams {
@@ -122,22 +122,12 @@ contract PolicyPool is ERC721, AccessControlDefaultAdminRules, ReentrancyGuard, 
         uint256 tenorHours;
         uint256 reliabilityBps;
         /**
-         * @dev `keccak256(capOrderId)` of the **job being insured** — the order the
-         *      Client opened against the Worker — and *not* the order through which
-         *      the coverage itself was bought. `ClaimsAdjudicator` matches the
-         *      Watcher's attestation against this field, so a policy that names the
-         *      wrong order can never pay out.
-         *
-         *      It follows that the job order must exist before the policy is bound.
-         *      In CAP terms: negotiate the hire, buy cover naming that order id, then
-         *      pay the hire. Cover is armed before the job is funded, which is the
-         *      right way round anyway.
-         *
-         *      For a `Treaty` nothing matches against it; it is the cede order, and it
-         *      serves only to stop the same cede being written twice.
+         * @dev `keccak256(intentId)` of the **cross-chain intent being insured**
+         *      `ClaimsAdjudicator` matches the Watcher's attestation against this field,
+         *      so a policy that names the wrong intent can never pay out.
          */
-        bytes32 insuredOrderId;
-        bytes32 insuredAgentId;
+        bytes32 intentId;
+        bytes32 relayerId;
     }
 
     /* ── Book ────────────────────────────────────────────────── */
@@ -177,9 +167,8 @@ contract PolicyPool is ERC721, AccessControlDefaultAdminRules, ReentrancyGuard, 
 
     uint256 public nextPolicyId;
     mapping(uint256 policyId => Policy) private _policies;
-    /// @notice Insured CAP order → policy id. One policy per job. Ids start at 1, so
-    ///         zero means "no policy", which is what the double-bind guard reads.
-    mapping(bytes32 insuredOrderId => uint256 policyId) public policyByInsuredOrder;
+    /// @notice Insured intent → policy id. One policy per intent. Ids start at 1.
+    mapping(bytes32 intentId => uint256 policyId) public policyByIntent;
 
     /* ── Events ──────────────────────────────────────────────── */
 
@@ -191,7 +180,7 @@ contract PolicyPool is ERC721, AccessControlDefaultAdminRules, ReentrancyGuard, 
         uint256 coverage,
         uint256 premium,
         uint256 expiresAt,
-        bytes32 insuredOrderId
+        bytes32 intentId
     );
     event CededPremiumDrawn(uint256 indexed policyId, address indexed to, uint256 amount);
     event ReinsuranceAttached(
@@ -208,7 +197,7 @@ contract PolicyPool is ERC721, AccessControlDefaultAdminRules, ReentrancyGuard, 
     /* ── Errors ──────────────────────────────────────────────── */
 
     error ZeroCoverage();
-    error OrderAlreadyInsured(bytes32 insuredOrderId);
+    error IntentAlreadyInsured(bytes32 intentId);
     error NotInsurable(RiskEngine.Decline reason);
     error PremiumBelowTechnicalRate(uint256 required, uint256 offered);
     error PremiumBelowExpectedLoss(uint256 required, uint256 offered);
@@ -381,7 +370,7 @@ contract PolicyPool is ERC721, AccessControlDefaultAdminRules, ReentrancyGuard, 
 
     function _bind(BindParams calldata p, Kind kind) internal returns (uint256 policyId) {
         if (p.coverage == 0) revert ZeroCoverage();
-        if (policyByInsuredOrder[p.insuredOrderId] != 0) revert OrderAlreadyInsured(p.insuredOrderId);
+        if (policyByIntent[p.intentId] != 0) revert IntentAlreadyInsured(p.intentId);
 
         RiskEngine.Quote memory q = riskEngine.quote(p.reliabilityBps, p.coverage, p.tenorHours, utilizationBps());
         if (!q.insurable) revert NotInsurable(q.decline);
@@ -420,12 +409,12 @@ contract PolicyPool is ERC721, AccessControlDefaultAdminRules, ReentrancyGuard, 
             boundAt: block.timestamp,
             expiresAt: expiresAt,
             reliabilityAtBindBps: p.reliabilityBps,
-            insuredOrderId: p.insuredOrderId,
-            insuredAgentId: p.insuredAgentId
+            intentId: p.intentId,
+            relayerId: p.relayerId
         });
-        policyByInsuredOrder[p.insuredOrderId] = policyId;
+        policyByIntent[p.intentId] = policyId;
 
-        emit PolicyBound(policyId, p.beneficiary, kind, p.coverage, p.premium, expiresAt, p.insuredOrderId);
+        emit PolicyBound(policyId, p.beneficiary, kind, p.coverage, p.premium, expiresAt, p.intentId);
         _safeMint(p.beneficiary, policyId);
     }
 

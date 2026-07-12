@@ -41,23 +41,21 @@ import { needAddress } from "./lib/env";
  */
 const SCOPE = "watcher";
 
-interface DeliveryEvidence {
-  deliverySubmitted: boolean;
+interface ProofEvidence {
+  proofSubmitted: boolean;
   contentHash: Hex;
 }
 
 const ZERO_HASH = `0x${"0".repeat(64)}` as Hex;
 
-/** Did the worker ever put anything on the table? */
-async function deliveryEvidence(cap: AgentClient, orderId: string): Promise<DeliveryEvidence> {
+/** Did the relayer ever put anything on the table? */
+async function proofEvidence(cap: AgentClient, orderId: string): Promise<ProofEvidence> {
   try {
     const delivery = await cap.getDelivery(orderId);
-    // A delivery with no content hash still happened. Hash its id so the on-chain
-    // consistency check (`submitted ⇔ hash != 0`) holds either way.
     const raw = delivery.contentHash || delivery.deliveryId;
-    return { deliverySubmitted: true, contentHash: contentKey(raw) };
+    return { proofSubmitted: true, contentHash: contentKey(raw) };
   } catch (error) {
-    if (isNotFound(error)) return { deliverySubmitted: false, contentHash: ZERO_HASH };
+    if (isNotFound(error)) return { proofSubmitted: false, contentHash: ZERO_HASH };
     throw error;
   }
 }
@@ -77,15 +75,15 @@ async function main() {
   const chainId = await publicClient.getChainId();
 
   async function handle(orderId: string, outcome: number) {
-    const insuredOrderId = orderKey(orderId);
+    const intentId = orderKey(orderId);
 
     const policyId = await publicClient.readContract({
       address: pool,
       abi: policyPoolAbi,
-      functionName: "policyByInsuredOrder",
-      args: [insuredOrderId],
+      functionName: "policyByIntent",
+      args: [intentId],
     });
-    if (policyId === 0n) return log(SCOPE, `order ${orderId} failed, but nobody insured it`);
+    if (policyId === 0n) return log(SCOPE, `intent ${orderId} failed, but nobody insured it`);
 
     const policy = await publicClient.readContract({
       address: pool,
@@ -97,13 +95,13 @@ async function main() {
       return log(SCOPE, `policy #${policyId} is not armed (status ${policy.status})`);
     }
 
-    const evidence = await deliveryEvidence(cap, orderId);
+    const evidence = await proofEvidence(cap, orderId);
 
-    if (outcome === Outcome.Rejected && evidence.deliverySubmitted) {
+    if (outcome === Outcome.Failed && evidence.proofSubmitted) {
       log(
         SCOPE,
-        `REFUSING to attest policy #${policyId}: order ${orderId} was rejected, but the worker ` +
-          `delivered (contentHash ${evidence.contentHash}). The beneficiary does not get to ` +
+        `REFUSING to attest policy #${policyId}: intent ${orderId} failed, but the relayer ` +
+          `submitted proof (contentHash ${evidence.contentHash}). The beneficiary does not get to ` +
           `declare its own loss. This needs a DISPUTE_RESOLVER, not a signature.`,
       );
       return;
@@ -112,9 +110,9 @@ async function main() {
     const attestation = {
       pool,
       policyId,
-      insuredOrderId,
+      intentId,
       outcome,
-      deliverySubmitted: evidence.deliverySubmitted,
+      proofSubmitted: evidence.proofSubmitted,
       contentHash: evidence.contentHash,
       observedAt: BigInt(Math.floor(Date.now() / 1000)),
     };
@@ -167,8 +165,8 @@ async function main() {
   const stream = await cap.connectWebSocket();
 
   stream.on(EventType.OrderRejected, (event) => {
-    void handle(event.order_id!, Outcome.Rejected).catch((error) =>
-      log(SCOPE, `rejected-order handling failed for ${event.order_id}:`, error),
+    void handle(event.order_id!, Outcome.Failed).catch((error) =>
+      log(SCOPE, `failed-intent handling failed for ${event.order_id}:`, error),
     );
   });
 

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import { ScrollTop } from "@/components/ui/scroll-top";
+import { Web3Provider } from "@/components/web3-provider";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -101,7 +102,9 @@ export default function RootLayout({
         <noscript>
           <style>{`[data-reveal]{opacity:1!important;transform:none!important;animation:none!important}`}</style>
         </noscript>
-        {children}
+        <Web3Provider>
+          {children}
+        </Web3Provider>
         <ScrollTop />
       </body>
     </html>

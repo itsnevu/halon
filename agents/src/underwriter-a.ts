@@ -9,9 +9,7 @@ import { need, needAddress } from "./lib/env";
  * Sentinel Underwriting — provider and requester in the same breath.
  *
  * It sells coverage to a client, and then, seconds later and with nobody asking, it
- * opens a CAP order of its own and buys reinsurance from Bastion Re. That is where
- * the A2A story actually lives: not an agent that sells a service, but an agent that
- * hires another agent to protect itself.
+ * opens a CAP order of its own and buys reinsurance from Bastion Re.
  *
  * The money path is worth following, because it is the part that is easy to get
  * wrong. The client's premium lands in `PolicyPool A` directly, inside CAP's pay-tx.
@@ -24,9 +22,9 @@ import { need, needAddress } from "./lib/env";
 const SCOPE = "sentinel";
 
 interface CoverRequest {
-  /** The CAP order the client wants insured: the job, not this purchase. */
-  insuredOrderId: string;
-  insuredAgentId: string;
+  /** The CAP order the client wants insured: the intent. */
+  intentId: string;
+  relayerId: string;
   /** USDC base units. */
   coverage: string;
   tenorHours: number;
@@ -58,7 +56,7 @@ async function main() {
         const offered = BigInt(negotiation.fundAmount ?? "0");
         const coverage = BigInt(request.coverage);
 
-        const reliabilityBps = await reliabilityBpsOf(cap, request.insuredAgentId);
+        const reliabilityBps = await reliabilityBpsOf(cap, request.relayerId);
         const quote = await publicClient.readContract({
           address: poolA,
           abi: policyPoolAbi,
@@ -82,7 +80,7 @@ async function main() {
         quoted.set(order.orderId, { request, reliabilityBps, cededCoverage: coverage - quote.netRetention });
         log(
           SCOPE,
-          `quoted ${usd(coverage)} on ${request.insuredAgentId} at ${bps(reliabilityBps)} → ` +
+          `quoted ${usd(coverage)} on ${request.relayerId} at ${bps(reliabilityBps)} → ` +
             `premium ${usd(quote.premium)} (${quote.rateBps} bps)`,
         );
       } catch (error) {
@@ -124,8 +122,8 @@ async function main() {
                 premium,
                 tenorHours: BigInt(request.tenorHours),
                 reliabilityBps,
-                insuredOrderId: orderKey(request.insuredOrderId),
-                insuredAgentId: agentKey(request.insuredAgentId),
+                intentId: orderKey(request.intentId),
+                relayerId: agentKey(request.relayerId),
               },
             ],
           },
@@ -152,7 +150,7 @@ async function main() {
             cededCoverage: cededCoverage.toString(),
             tenorHours: request.tenorHours,
             reliabilityBps: reliabilityBps.toString(),
-            insuredAgentId: request.insuredAgentId,
+            relayerId: request.relayerId,
           }),
         });
 
@@ -168,7 +166,7 @@ async function main() {
           const id = await publicClient.readContract({
             address: poolB,
             abi: policyPoolAbi,
-            functionName: "policyByInsuredOrder",
+            functionName: "policyByIntent",
             args: [orderKey(reinsuranceOrderId)],
           });
           return id === 0n ? undefined : id;
