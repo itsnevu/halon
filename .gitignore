@@ -14,3 +14,4 @@ dashboard/.next/
 dashboard/out/
 next-env.d.ts
 *.tsbuildinfo
+TODO.txt

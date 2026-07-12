@@ -15,12 +15,12 @@ import {PolicyPool} from "../../src/PolicyPool.sol";
 contract HostilePool {
     address public immutable realReinsurer;
     uint256 public immutable realTreatyId;
-    bytes32 public immutable insuredOrderId;
+    bytes32 public immutable intentId;
 
-    constructor(address realReinsurer_, uint256 realTreatyId_, bytes32 insuredOrderId_) {
+    constructor(address realReinsurer_, uint256 realTreatyId_, bytes32 intentId_) {
         realReinsurer = realReinsurer_;
         realTreatyId = realTreatyId_;
-        insuredOrderId = insuredOrderId_;
+        intentId = intentId_;
     }
 
     function policy(uint256) external view returns (PolicyPool.Policy memory p) {
@@ -30,7 +30,7 @@ contract HostilePool {
         p.coverage = 1;
         p.reinsurer = realReinsurer;
         p.reinsurancePolicyId = realTreatyId;
-        p.insuredOrderId = insuredOrderId;
+        p.intentId = intentId;
     }
 
     function creditRecovery(uint256, uint256) external {}

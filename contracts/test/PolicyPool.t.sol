@@ -92,8 +92,8 @@ contract PolicyPoolTest is Test {
             premium: premium,
             tenorHours: tenor,
             reliabilityBps: REL,
-            insuredOrderId: orderId,
-            insuredAgentId: AURORA
+            intentId: orderId,
+            relayerId: AURORA
         });
     }
 
@@ -215,7 +215,7 @@ contract PolicyPoolTest is Test {
 
         vm.startPrank(uwA);
         poolA.bindDirect(_params(client, COVER, q.premium, TENOR, ORDER_A));
-        vm.expectRevert(abi.encodeWithSelector(PolicyPool.OrderAlreadyInsured.selector, ORDER_A));
+        vm.expectRevert(abi.encodeWithSelector(PolicyPool.IntentAlreadyInsured.selector, ORDER_A));
         poolA.bindDirect(_params(client, COVER, q.premium, TENOR, ORDER_A));
         vm.stopPrank();
     }

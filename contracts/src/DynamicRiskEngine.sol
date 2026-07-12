@@ -167,15 +167,10 @@ contract DynamicRiskEngine {
         if (tenorHours > MAX_TENOR_HOURS) revert TenorTooLong(tenorHours);
         if (coverage > MAX_COVERAGE) revert CoverageTooLarge(coverage);
 
-        // Fetch network congestion from an oracle or mock value
-        // For testing, we mock a congestion spike of +1000 bps (10%)
-        uint256 networkCongestionBps = 1000; 
-
         uint256 reliability = reliabilityBps > BPS ? BPS : reliabilityBps;
         uint256 utilization = utilizationBps > BPS ? BPS : utilizationBps;
 
-        // Hazards are now affected by network congestion
-        q.rejectionHazardBps = (BPS - reliability) + networkCongestionBps;
+        q.rejectionHazardBps = BPS - reliability;
         if (q.rejectionHazardBps > BPS) q.rejectionHazardBps = BPS;
         q.tenorFactorBps = BPS + (EXPIRY_BETA_BPS * tenorHours) / TENOR_REF_HOURS;
         q.expiryHazardBps = (q.rejectionHazardBps * (q.tenorFactorBps - BPS)) / BPS;

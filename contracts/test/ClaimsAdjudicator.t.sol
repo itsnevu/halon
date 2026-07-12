@@ -103,8 +103,8 @@ contract ClaimsAdjudicatorTest is Test {
             premium: premium,
             tenorHours: TENOR,
             reliabilityBps: REL,
-            insuredOrderId: orderId,
-            insuredAgentId: AURORA
+            intentId: orderId,
+            relayerId: AURORA
         });
     }
 
@@ -140,9 +140,9 @@ contract ClaimsAdjudicatorTest is Test {
         return ClaimsAdjudicator.Attestation({
             pool: address(poolA),
             policyId: policyId,
-            insuredOrderId: ORDER_JOB,
+            intentId: ORDER_JOB,
             outcome: outcome,
-            deliverySubmitted: delivered,
+            proofSubmitted: delivered,
             contentHash: contentHash,
             observedAt: block.timestamp
         });
@@ -150,7 +150,7 @@ contract ClaimsAdjudicatorTest is Test {
 
     /// The worker never delivered. The canonical, auto-payable claim.
     function _cleanRejection() internal view returns (ClaimsAdjudicator.Attestation memory) {
-        return _attestation(ClaimsAdjudicator.Outcome.Rejected, false, bytes32(0));
+        return _attestation(ClaimsAdjudicator.Outcome.Failed, false, bytes32(0));
     }
 
     function _sign(uint256 pk, bytes32 digest) internal pure returns (bytes memory) {
@@ -198,12 +198,12 @@ contract ClaimsAdjudicatorTest is Test {
      * trigger, so this contract refuses to be the one that pulls it.
      */
     function test_RejectedAfterDeliveryIsRefused() public {
-        ClaimsAdjudicator.Attestation memory a = _attestation(ClaimsAdjudicator.Outcome.Rejected, true, CONTENT);
+        ClaimsAdjudicator.Attestation memory a = _attestation(ClaimsAdjudicator.Outcome.Failed, true, CONTENT);
         assertFalse(adj.isAutoPayable(a));
         bytes[] memory sigs = _oneSig(a);
 
         vm.expectRevert(
-            abi.encodeWithSelector(ClaimsAdjudicator.DeliveredThenRefused.selector, address(poolA), policyId, CONTENT)
+            abi.encodeWithSelector(ClaimsAdjudicator.ProofSubmittedThenFailed.selector, address(poolA), policyId, CONTENT)
         );
         adj.discharge(a, sigs);
 
@@ -231,24 +231,24 @@ contract ClaimsAdjudicatorTest is Test {
     /// An attestation about some other failed order must not discharge this policy.
     function test_AttestationMustNameThePolicysOwnOrder() public {
         ClaimsAdjudicator.Attestation memory a = _cleanRejection();
-        a.insuredOrderId = keccak256("ord_some_entirely_different_job");
+        a.intentId = keccak256("ord_some_entirely_different_job");
         bytes[] memory sigs = _oneSig(a);
 
         vm.expectRevert(
-            abi.encodeWithSelector(ClaimsAdjudicator.OrderPolicyMismatch.selector, ORDER_JOB, a.insuredOrderId)
+            abi.encodeWithSelector(ClaimsAdjudicator.IntentPolicyMismatch.selector, ORDER_JOB, a.intentId)
         );
         adj.discharge(a, sigs);
     }
 
     function test_InconsistentDeliveryIsRejected() public {
-        ClaimsAdjudicator.Attestation memory a = _attestation(ClaimsAdjudicator.Outcome.Rejected, true, bytes32(0));
+        ClaimsAdjudicator.Attestation memory a = _attestation(ClaimsAdjudicator.Outcome.Failed, true, bytes32(0));
         bytes[] memory aSigs = _oneSig(a);
-        vm.expectRevert(abi.encodeWithSelector(ClaimsAdjudicator.InconsistentDelivery.selector, true, bytes32(0)));
+        vm.expectRevert(abi.encodeWithSelector(ClaimsAdjudicator.InconsistentProof.selector, true, bytes32(0)));
         adj.discharge(a, aSigs);
 
         ClaimsAdjudicator.Attestation memory b = _attestation(ClaimsAdjudicator.Outcome.Expired, false, CONTENT);
         bytes[] memory bSigs = _oneSig(b);
-        vm.expectRevert(abi.encodeWithSelector(ClaimsAdjudicator.InconsistentDelivery.selector, false, CONTENT));
+        vm.expectRevert(abi.encodeWithSelector(ClaimsAdjudicator.InconsistentProof.selector, false, CONTENT));
         adj.discharge(b, bSigs);
     }
 

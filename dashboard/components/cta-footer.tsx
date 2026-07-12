@@ -71,17 +71,15 @@ export function CtaBand() {
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <ButtonLink variant="primary" size="lg" arrow href="#quote">
-            Get a quote
+          <ButtonLink variant="primary" size="lg" arrow href="/docs">
+            Read the docs
           </ButtonLink>
           <ButtonLink
             variant="ghost"
             size="lg"
-            href={SITE.agentStore}
-            target="_blank"
-            rel="noreferrer"
+            href="/earn"
           >
-            List your agent
+            Provide Liquidity
           </ButtonLink>
         </div>
 
@@ -96,10 +94,9 @@ const headingClass = "font-mono text-[0.625rem] uppercase tracking-[0.16em] text
 const linkClass = "text-sm text-mist-dim transition-colors hover:text-white";
 
 const BUILD_LINKS = [
-  { label: "CROO Agent Store", href: SITE.agentStore, external: true },
-  { label: "CAP docs", href: SITE.docs, external: true },
-  { label: "GitHub", href: SITE.github, external: true },
-  { label: "Design doc", href: "#", external: false },
+  { label: "Documentation", href: SITE.docs, external: false },
+  { label: "Smart Contracts", href: "#", external: false },
+  { label: "Bug Bounty", href: "#", external: false },
 ] as const;
 
 export function SiteFooter() {
@@ -112,27 +109,6 @@ export function SiteFooter() {
             <HalonWordmark />
             <p className="mt-4 max-w-xs text-sm text-mist">{SITE.tagline}</p>
             <p className="mt-3 font-mono text-[0.6875rem] text-mist-dim italic">{SITE.metaphor}</p>
-
-            <div className="mt-6 flex items-center gap-4">
-              <a
-                href={SITE.github}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="HALON on GitHub"
-                className="text-mist-dim transition-colors hover:text-lime"
-              >
-                <GithubIcon />
-              </a>
-              <a
-                href={SITE.docs}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="CROO Agent Protocol documentation"
-                className="text-mist-dim transition-colors hover:text-lime"
-              >
-                <DocsIcon />
-              </a>
-            </div>
           </div>
 
           {/* protocol */}

@@ -22,10 +22,11 @@ interface IPolicyPool {
 }
 
 /**
- * @title SafeBridgeRouter
- * @notice Multi-token premium router. Swaps user tokens to USDC to fund PolicyPool premiums.
+ * @title HalonRouter
+ * @notice The HalonRouter orchestrates cross-chain intent swaps via the 
+ *         PolicyPool. It holds custody of user funds and dispenses premiums.
  */
-contract SafeBridgeRouter {
+contract HalonRouter {
     address public immutable usdc;
     IPolicyPool public immutable policyPool;
 
