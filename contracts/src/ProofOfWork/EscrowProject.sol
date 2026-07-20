@@ -116,11 +116,20 @@ contract EscrowProject is ReentrancyGuard {
             return collateralToken.balanceOf(address(this));
         }
 
-        (, int256 price, , , ) = priceOracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = priceOracle.latestRoundData();
+        require(price > 0, "Invalid oracle price");
+        require(block.timestamp <= updatedAt + 1 hours, "Stale oracle price");
+
         uint8 decimals = priceOracle.decimals();
         
         uint256 balance = collateralToken.balanceOf(address(this));
         // Return value normalized to 18 decimals roughly for MVP
         return (balance * uint256(price)) / (10 ** decimals);
+    }
+
+    function topUpCollateral(uint256 amount) external onlyClient nonReentrant {
+        require(amount > 0, "Amount must be greater than zero");
+        collateralToken.safeTransferFrom(msg.sender, address(this), amount);
+        totalAmount += amount;
     }
 }
