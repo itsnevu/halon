@@ -40,10 +40,13 @@ export function Sparkline({
   const pad = strokeWidth + 1;
   const min = Math.min(...data);
   const max = Math.max(...data);
-  const span = max - min || 1;
+  const span = max - min;
 
   const x = (i: number) => (i / (data.length - 1)) * (width - pad * 2) + pad;
-  const y = (v: number) => height - pad - ((v - min) / span) * (height - pad * 2);
+  const y = (v: number) => {
+    if (span === 0) return height / 2;
+    return height - pad - ((v - min) / span) * (height - pad * 2);
+  };
 
   const line = data.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(" ");
   const area = `${line} L${x(data.length - 1).toFixed(2)},${height} L${x(0).toFixed(2)},${height} Z`;
