@@ -2,16 +2,16 @@
 
 export const POW_CONFIG = {
   // Escrow Factory
-  escrowFactoryAddress: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+  escrowFactoryAddress: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707" as `0x${string}`,
   
   // Mocks
-  mockUSDGAddress: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-  mockAAPLAddress: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-  mockOracleAddress: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+  mockUSDGAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3" as `0x${string}`,
+  mockAAPLAddress: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" as `0x${string}`,
+  mockOracleAddress: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9" as `0x${string}`,
   
   // DeFi
-  mockMorphoVaultAddress: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-  paymentDistributorAddress: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+  mockMorphoVaultAddress: "0x0165878A594ca255338adfa4d48449f69242Eb8F" as `0x${string}`,
+  paymentDistributorAddress: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853" as `0x${string}`,
 
   // Backend
   aiBackendUrl: "http://localhost:8000"

@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Script, console2} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockERC20} from "../test/mocks/MockERC20.sol";
+import {MockERC20} from "../src/ProofOfWork/mocks/MockERC20.sol";
 
 import {ClaimsAdjudicator} from "../src/ClaimsAdjudicator.sol";
 import {PolicyPool} from "../src/PolicyPool.sol";
@@ -36,7 +36,7 @@ contract DeployTestnet is Script {
         PolicyPool poolA = new PolicyPool(usdc, RiskEngine(address(riskEngine)), deployer, "HALON Intent Cover", "HALON-COV");
         
         // 3. Deploy Claims Adjudicator (Layer 2)
-        ClaimsAdjudicator adjudicator = new ClaimsAdjudicator(usdc, deployer);
+        ClaimsAdjudicator adjudicator = new ClaimsAdjudicator(deployer);
 
         // 4. Deploy HALON Router (Multi-token swapper)
         HalonRouter router = new HalonRouter(usdcAddr, address(poolA));
@@ -47,7 +47,7 @@ contract DeployTestnet is Script {
         poolA.grantRole(poolA.ADJUDICATOR_ROLE(), address(adjudicator));
         
         // Register pool in adjudicator
-        adjudicator.registerPool(poolA);
+        adjudicator.setPool(address(poolA), true);
 
         // Fetch mock/env addresses for roles
         address cedeRecipientA = vm.envAddress("UNDERWRITER_A_CAP_WALLET");
