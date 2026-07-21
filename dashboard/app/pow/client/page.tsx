@@ -49,110 +49,141 @@ export default function ClientDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
-        <header className="flex justify-between items-center border-b border-gray-800 pb-4">
-          <h1 className="text-3xl font-bold">Client Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-full font-medium">
-              Reputation Score: 95/100
-            </span>
+    <div className="py-10 px-5 sm:px-8 max-w-7xl mx-auto space-y-10">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-line">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-lime/30 bg-lime/10 px-3 py-1 text-xs font-semibold text-lime mb-2">
+            RWA ESCROW FACTORY
           </div>
-        </header>
+          <h1 className="font-display text-3xl md:text-4xl font-extrabold text-white">Client Portal</h1>
+          <p className="text-mist text-sm mt-1">Lock collateral (Tokenized AAPL / USDG) and manage milestone releases.</p>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800 shadow-2xl">
-            <h2 className="text-xl font-bold mb-4">Create Escrow Project</h2>
-            {!isConnected ? (
-              <div className="p-4 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg">
-                Please connect your wallet first via the layout header.
+        <div className="flex items-center gap-4">
+          <div className="neu neu-raise px-5 py-3 rounded-2xl border border-line bg-surface-2 flex items-center gap-3">
+            <div className="size-3 rounded-full bg-lime animate-pulse" />
+            <div>
+              <div className="text-xs text-mist font-mono uppercase">Client Credit Rating</div>
+              <div className="text-lg font-bold text-lime font-display">95 / 100 <span className="text-xs font-normal text-mist">(Prime)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column: Escrow Form */}
+        <div className="lg:col-span-7 rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold font-display text-white">Create New Escrow Project</h2>
+            <span className="text-xs font-mono text-lime bg-lime/10 px-3 py-1 rounded-full border border-lime/20">Step 1 of 2</span>
+          </div>
+
+          {!isConnected ? (
+            <div className="p-6 rounded-2xl border border-line bg-surface/50 text-center space-y-3">
+              <div className="size-10 rounded-full bg-lime/10 text-lime flex items-center justify-center mx-auto">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
               </div>
-            ) : (
-              <div className="space-y-4">
+              <p className="text-sm text-mist">Please connect your Web3 Wallet in the site header to lock collateral.</p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-mono text-mist uppercase mb-2">Freelancer Wallet Address</label>
+                <input 
+                  type="text" 
+                  value={freelancerAddress}
+                  onChange={(e) => setFreelancerAddress(e.target.value)}
+                  placeholder="0x71C...8921" 
+                  className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-lime outline-none font-mono transition-colors" 
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Freelancer Address</label>
-                  <input 
-                    type="text" 
-                    value={freelancerAddress}
-                    onChange={(e) => setFreelancerAddress(e.target.value)}
-                    placeholder="0x..." 
-                    className="w-full bg-black border border-gray-700 rounded-lg p-3 text-gray-300 focus:border-blue-500 outline-none" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1 flex justify-between">
-                    <span>Collateral (RWA)</span>
-                    <span className="text-blue-400">Bal: {balance ? (Number(balance) / 1e18).toFixed(2) : "0.00"}</span>
+                  <label className="block text-xs font-mono text-mist uppercase mb-2 flex justify-between">
+                    <span>Collateral Asset</span>
+                    <span className="text-lime font-mono">Bal: {balance ? (Number(balance) / 1e18).toFixed(2) : "0.00"}</span>
                   </label>
                   <select 
                     value={tokenChoice}
                     onChange={(e) => setTokenChoice(e.target.value as "USDG" | "AAPL")}
-                    className="w-full bg-black border border-gray-700 rounded-lg p-3 text-gray-300"
+                    className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-lime outline-none transition-colors"
                   >
-                    <option value="AAPL">Tokenized AAPL</option>
+                    <option value="AAPL">Tokenized AAPL (RWA)</option>
                     <option value="USDG">USDG Stablecoin</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Amount to Lock</label>
+                  <label className="block text-xs font-mono text-mist uppercase mb-2">Amount to Lock</label>
                   <input 
                     type="number" 
                     value={amountToLock}
                     onChange={(e) => setAmountToLock(e.target.value)}
-                    className="w-full bg-black border border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none" 
+                    className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-lime outline-none font-mono transition-colors" 
                   />
                 </div>
-                
+              </div>
+
+              <div className="pt-2">
                 <button 
                   onClick={handleDeployEscrow}
                   disabled={isPending || isConfirming || isConfirmed}
-                  className={`w-full py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 
-                    ${isConfirmed ? 'bg-green-600 text-white' : 
-                      (isPending || isConfirming) ? 'bg-blue-800 text-blue-200 cursor-wait' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
+                  className={`w-full py-4 rounded-full font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-sm shadow-lg
+                    ${isConfirmed ? 'bg-mint text-black' : 
+                      (isPending || isConfirming) ? 'bg-surface-3 text-mist cursor-wait' : 'bg-lime text-lime-ink hover:bg-lime-soft glow-lime-sm'}`}
                 >
                   {(isPending || isConfirming) && (
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   )}
-                  {isConfirmed ? "Collateral Locked On-Chain" : 
+                  {isConfirmed ? "Collateral Locked On-Chain!" : 
                    isConfirming ? "Confirming Transaction..." : 
-                   isPending ? "Please sign in wallet..." : "Lock Collateral (Deploy Escrow)"}
+                   isPending ? "Signature Requested..." : "Lock Collateral & Deploy Escrow"}
                 </button>
 
-                {hash && <div className="text-xs text-gray-500 truncate">Tx: {hash}</div>}
+                {hash && <div className="mt-3 text-xs text-mist font-mono text-center truncate">Tx: {hash}</div>}
               </div>
-            )}
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Active Milestones & Financing */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8 space-y-4">
+            <h2 className="text-xl font-bold font-display text-white">Active Milestones</h2>
+            <div className="p-5 rounded-2xl border border-line bg-surface space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="font-bold text-white text-base">Milestone #1: Core UI Implementation</h4>
+                  <div className="text-xs text-mist mt-0.5 font-mono">ID: #MS-00912</div>
+                </div>
+                <span className="text-lime font-mono font-bold text-lg">$3,000 USDG</span>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-semibold text-spring bg-spring/10 px-3 py-1.5 rounded-full border border-spring/20 w-fit">
+                <span className="size-2 rounded-full bg-spring animate-pulse" />
+                Awaiting Freelancer Work Submission
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800 shadow-2xl">
-              <h2 className="text-xl font-bold mb-4">Active Milestones</h2>
-              <div className="p-4 border border-gray-800 rounded-xl bg-black/50">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-semibold">Milestone #1: Frontend Mockup</span>
-                  <span className="text-blue-400 font-bold">$3,000</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                  Pending AI Verification
-                </div>
-                <button className="w-full py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-white font-medium" disabled>
-                  Awaiting Freelancer Submission
-                </button>
-              </div>
+          {/* Advance Financing Option Banner */}
+          <div className="rounded-3xl border border-lime/30 bg-gradient-to-br from-lime/10 via-surface-2 to-mint/10 p-6 md:p-8 space-y-4">
+            <div className="flex items-center gap-2 text-lime font-mono text-xs font-bold uppercase tracking-wider">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Robinhood Advance Financing
             </div>
-
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-900/40 to-blue-900/40 border border-purple-500/30">
-              <h3 className="text-lg font-bold text-purple-300 mb-2">Advance Financing Available</h3>
-              <p className="text-sm text-gray-400 mb-4">
-                Your reputation is &gt; 80. You can offer Advance Financing to freelancers directly from the Robinhood Earn liquidity pool!
-              </p>
-              <button className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-bold shadow-lg shadow-purple-500/20">
-                Enable Advance Financing
-              </button>
-            </div>
+            <h3 className="text-lg font-bold font-display text-white">Offer Instant 85% Upfront Payout</h3>
+            <p className="text-xs text-mist leading-relaxed">
+              Because your Client Credit Score is &gt; 80, your projects qualify for Morpho DeFi Earn Pool advance liquidity.
+            </p>
+            <button className="w-full py-3 rounded-full bg-lime/20 border border-lime/40 text-lime text-xs font-bold hover:bg-lime/30 transition-colors">
+              Enable Advance Liquidity Option
+            </button>
           </div>
         </div>
       </div>

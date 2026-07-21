@@ -1,29 +1,20 @@
-import Link from "next/link";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/cta-footer";
 import { ReactNode } from "react";
 
 export default function PoWLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
-      <nav className="border-b border-gray-800 bg-black sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/pow" className="text-xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-            ProofOfWork
-          </Link>
-          <div className="flex items-center gap-6 text-sm font-medium">
-            <Link href="/pow/client" className="hover:text-blue-400 transition-colors">Client Portal</Link>
-            <Link href="/pow/freelancer" className="hover:text-emerald-400 transition-colors">Freelancer Portal</Link>
-            <Link href="/pow/lp" className="hover:text-purple-400 transition-colors">LP (Earn)</Link>
-            <div className="h-6 w-px bg-gray-800 mx-2"></div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span className="text-gray-400">Privy Wallet Connected</span>
-            </div>
-          </div>
+    <div className="min-h-screen bg-ink text-white flex flex-col font-sans selection:bg-lime selection:text-black">
+      <SiteHeader />
+      <main className="flex-1 relative">
+        {/* Subtle grid background & halo background */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid-bg opacity-30" />
+        <div aria-hidden="true" className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-lime/5 via-mint/5 to-transparent blur-3xl" />
+        <div className="relative">
+          {children}
         </div>
-      </nav>
-      <main className="flex-1">
-        {children}
       </main>
+      <SiteFooter />
     </div>
   );
 }
