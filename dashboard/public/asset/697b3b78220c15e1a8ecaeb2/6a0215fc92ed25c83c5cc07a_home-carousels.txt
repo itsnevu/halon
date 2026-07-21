@@ -1,0 +1,257 @@
+(function() {
+    const isMobile = window.innerWidth <= 991;
+
+    if (!isMobile) {
+        function disableSpecificSplide() {
+            const sliderWrap = document.querySelector('.slider_wrap.specific_guided');
+            if (!sliderWrap) return;
+
+            const splideEl = sliderWrap.querySelector('#splide01');
+            if (!splideEl) return;
+
+            const list = splideEl.querySelector('.splide__list');
+            if (list) {
+                list.style.display = 'grid';
+                list.style.flexWrap = 'nowrap';
+                list.style.transform = 'none';
+                list.style.transition = 'none';
+            }
+
+            const arrows = sliderWrap.querySelectorAll('.splide__arrows');
+            const pagination = sliderWrap.querySelectorAll('.splide__pagination');
+            const progress = sliderWrap.querySelectorAll('.progress_gaps');
+
+            arrows.forEach(function(el) { el.style.display = 'none'; });
+            pagination.forEach(function(el) { el.style.display = 'none'; });
+            progress.forEach(function(el) { el.style.display = 'none'; });
+
+            splideEl.classList.remove('splide--draggable');
+
+            const track = splideEl.querySelector('.splide__track');
+            if (track) {
+                track.style.paddingLeft = '0';
+                track.style.paddingRight = '0';
+            }
+
+            const slides = splideEl.querySelectorAll('.splide__slide');
+            slides.forEach(function(slide) {
+                slide.style.width = 'auto';
+                slide.style.flexShrink = '0';
+            });
+        }
+
+        setTimeout(disableSpecificSplide, 100);
+        setTimeout(disableSpecificSplide, 500);
+        setTimeout(disableSpecificSplide, 1000);
+
+        window.addEventListener('load', function() {
+            setTimeout(disableSpecificSplide, 500);
+        });
+
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(disableSpecificSplide, 250);
+        });
+
+        return;
+    }
+
+    function loadSplide() {
+        return new Promise((resolve, reject) => {
+            if (window.Splide) {
+                resolve(window.Splide);
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@splidejs/splide@3.2.2/dist/js/splide.min.js';
+            script.async = true;
+
+            script.onload = () => resolve(window.Splide);
+            script.onerror = () => reject(new Error('Failed to load Splide'));
+
+            document.head.appendChild(script);
+        });
+    }
+
+    function disableSpecificSplide() {
+        const sliderWrap = document.querySelector('.slider_wrap.specific_guided');
+        if (!sliderWrap) return;
+
+        const splideEl = sliderWrap.querySelector('#splide01');
+        if (!splideEl) return;
+
+        let splideInstance = null;
+
+        if (splideEl.splide) {
+            splideInstance = splideEl.splide;
+        } else if (window.Splide && window.Splide.getInstance) {
+            splideInstance = window.Splide.getInstance(splideEl);
+        }
+
+        if (splideInstance && typeof splideInstance.destroy === 'function') {
+            try {
+                splideInstance.destroy();
+            } catch (e) {}
+        }
+
+        const list = splideEl.querySelector('.splide__list');
+        if (list) {
+            list.style.display = 'grid';
+            list.style.flexWrap = 'nowrap';
+            list.style.transform = 'none';
+            list.style.transition = 'none';
+        }
+
+        const arrows = sliderWrap.querySelectorAll('.splide__arrows');
+        const pagination = sliderWrap.querySelectorAll('.splide__pagination');
+        const progress = sliderWrap.querySelectorAll('.progress_gaps');
+
+        arrows.forEach(function(el) { el.style.display = 'none'; });
+        pagination.forEach(function(el) { el.style.display = 'none'; });
+        progress.forEach(function(el) { el.style.display = 'none'; });
+
+        splideEl.classList.remove('splide--draggable');
+
+        const track = splideEl.querySelector('.splide__track');
+        if (track) {
+            track.style.paddingLeft = '0';
+            track.style.paddingRight = '0';
+        }
+
+        const slides = splideEl.querySelectorAll('.splide__slide');
+        slides.forEach(function(slide) {
+            slide.style.width = 'auto';
+            slide.style.flexShrink = '0';
+        });
+    }
+
+    function wrapControls(sliderEl) {
+        const arrows = sliderEl.querySelector('.splide__arrows');
+        const pagination = sliderEl.querySelector('.splide__pagination');
+
+        if (!arrows || !pagination) return;
+
+        let controls = sliderEl.querySelector('.slider_controls');
+
+        if (!controls) {
+            controls = document.createElement('div');
+            controls.className = 'slider_controls';
+            sliderEl.appendChild(controls);
+        }
+
+        if (!controls.contains(pagination)) {
+            controls.appendChild(pagination);
+        }
+
+        if (!controls.contains(arrows)) {
+            controls.appendChild(arrows);
+        }
+    }
+
+    function initSlider() {
+        const SLIDER_SELECTOR = '.slider1';
+        const PROGRESS_BAR_SELECTOR = '.my-slider-progress-bar';
+
+        const options = {
+            perPage: 3.5,
+            perMove: 1,
+            focus: 0,
+            type: 'slider',
+            gap: '0px',
+            arrows: 'slider',
+            pagination: 'slider',
+            speed: 800,
+            dragAngleThreshold: 60,
+            autoWidth: false,
+            rewind: false,
+            rewindSpeed: 400,
+            waitForTransition: false,
+            updateOnMove: true,
+            trimSpace: false,
+            breakpoints: {
+                991: {
+                    perPage: 2.2,
+                    gap: '0px',
+                },
+                767: {
+                    perPage: 1.8,
+                    gap: '0px',
+                },
+                479: {
+                    perPage: 1,
+                    gap: '0px',
+                }
+            }
+        };
+
+        const initSliderEl = (sliderEl) => {
+            const progressBar = sliderEl.closest('.slider_wrap')?.querySelector(PROGRESS_BAR_SELECTOR);
+            const splide = new Splide(sliderEl, options);
+
+            const updateProgress = () => {
+                if (!progressBar) return;
+
+                const controller = splide.Components.Controller;
+                const end = controller.getEnd();
+
+                if (end <= 0) {
+                    progressBar.style.width = '100%';
+                    return;
+                }
+
+                const index = controller.getIndex();
+                const progress = Math.min(Math.max(index / end, 0), 1) * 100;
+                progressBar.style.width = `${progress}%`;
+            };
+
+            splide.on('mounted', function() {
+                wrapControls(sliderEl);
+                updateProgress();
+            });
+
+            splide.on('move resize updated', function() {
+                wrapControls(sliderEl);
+                updateProgress();
+            });
+
+            splide.mount();
+        };
+
+        document.querySelectorAll(SLIDER_SELECTOR).forEach(initSliderEl);
+    }
+
+    loadSplide()
+        .then(() => {
+            setTimeout(disableSpecificSplide, 100);
+            setTimeout(disableSpecificSplide, 500);
+            setTimeout(disableSpecificSplide, 1000);
+
+            window.addEventListener('load', function() {
+                setTimeout(disableSpecificSplide, 500);
+            });
+
+            let resizeTimeout;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(disableSpecificSplide, 250);
+            });
+
+            const observer = new MutationObserver(function() {
+                setTimeout(disableSpecificSplide, 100);
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initSlider, { once: true });
+            } else {
+                initSlider();
+            }
+        })
+        .catch(() => {});
+})();
