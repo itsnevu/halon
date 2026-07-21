@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/cta-footer";
 import { useState } from "react";
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from "wagmi";
+import { useModal } from "connectkit";
 import { parseUnits, formatUnits } from "viem";
 import { ERC20_ABI, POLICY_POOL_ABI } from "@/lib/pow-abis";
 import { SITE } from "@/lib/site";
@@ -13,6 +14,7 @@ const POLICY_POOL_A = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512" as const;
 export default function EarnPage() {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState("");
+  const { setOpen } = useModal();
 
   const { data: balance } = useReadContract({
     address: SITE.usdc as `0x${string}`,
@@ -117,8 +119,8 @@ export default function EarnPage() {
 
             {!isConnected ? (
               <button 
-                className="w-full py-3 rounded-lg font-semibold bg-surface-3 text-mist cursor-not-allowed"
-                disabled
+                onClick={() => setOpen(true)}
+                className="w-full py-3 rounded-lg font-semibold bg-gradient-to-r from-lime via-spring to-mint text-ink hover:opacity-90 transition-all active:scale-95 shadow-[0_0_20px_rgba(205,255,113,0.3)] cursor-pointer"
               >
                 Connect Wallet
               </button>
