@@ -191,3 +191,74 @@ export const PAYMENT_DISTRIBUTOR_ABI = [
     "type": "function"
   }
 ] as const;
+
+export const POLICY_POOL_ABI = [
+  {
+    "inputs": [{ "name": "amount", "type": "uint256" }],
+    "name": "depositCapital",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "name": "amount", "type": "uint256" },
+      { "name": "to", "type": "address" }
+    ],
+    "name": "withdrawCapital",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalCapital",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextPolicyId",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "policyId", "type": "uint256" }],
+    "name": "policy",
+    "outputs": [
+      {
+        "components": [
+          { "name": "id", "type": "uint256" },
+          { "name": "beneficiary", "type": "address" },
+          { "name": "coverage", "type": "uint256" },
+          { "name": "premium", "type": "uint256" },
+          { "name": "expiresAt", "type": "uint256" },
+          { "name": "status", "type": "uint8" },
+          { "name": "intentId", "type": "bytes32" },
+          { "name": "reinsurancePolicyId", "type": "uint256" }
+        ],
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const;
+
+export const CLAIMS_ADJUDICATOR_ABI = [
+  {
+    "inputs": [
+      { "name": "pool", "type": "address" },
+      { "name": "policyId", "type": "uint256" },
+      { "name": "reason", "type": "string" }
+    ],
+    "name": "dischargeDisputed",
+    "outputs": [{ "name": "indemnity", "type": "uint256" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+] as const;
+

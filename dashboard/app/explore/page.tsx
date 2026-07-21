@@ -1,16 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/cta-footer";
 import { cn } from "@/lib/cn";
 
-// Simulated Market Data
-const TOP_TOKENS = [
-  { rank: 1, name: "Ethereum", symbol: "ETH", price: "$3,422.69", change1H: "+0.81%", change1D: "-0.05%", fdv: "$224.0B", vol: "$1.3B", color: "#627EEA", isPos1h: true, isPos1d: false },
-  { rank: 2, name: "Tether USD", symbol: "USDT", price: "$1.00", change1H: "0.00%", change1D: "+0.01%", fdv: "$189.6B", vol: "$1.1B", color: "#26A17B", isPos1h: true, isPos1d: true },
-  { rank: 3, name: "USD Coin", symbol: "USDC", price: "$1.00", change1H: "0.00%", change1D: "0.00%", fdv: "$32.4B", vol: "$900M", color: "#2775CA", isPos1h: true, isPos1d: true },
-  { rank: 4, name: "Solana", symbol: "SOL", price: "$145.20", change1H: "+1.20%", change1D: "+4.50%", fdv: "$68.2B", vol: "$850M", color: "#14F195", isPos1h: true, isPos1d: true },
-  { rank: 5, name: "Wrapped BTC", symbol: "WBTC", price: "$64,210.00", change1H: "-0.12%", change1D: "+1.40%", fdv: "$9.8B", vol: "$320M", color: "#F7931A", isPos1h: false, isPos1d: true },
+// Simulated Market Data as fallback
+const INITIAL_TOKENS = [
+  { rank: 1, name: "Ethereum", symbol: "ETH", price: "$3,422.69", change1H: "+0.81%", change1D: "-0.05%", fdv: "$224.0B", vol: "$1.3B", color: "#627EEA", isPos1h: true, isPos1d: false, geckoId: "coingecko:ethereum" },
+  { rank: 2, name: "Tether USD", symbol: "USDT", price: "$1.00", change1H: "0.00%", change1D: "+0.01%", fdv: "$189.6B", vol: "$1.1B", color: "#26A17B", isPos1h: true, isPos1d: true, geckoId: "coingecko:tether" },
+  { rank: 3, name: "USD Coin", symbol: "USDC", price: "$1.00", change1H: "0.00%", change1D: "0.00%", fdv: "$32.4B", vol: "$900M", color: "#2775CA", isPos1h: true, isPos1d: true, geckoId: "coingecko:usd-coin" },
+  { rank: 4, name: "Solana", symbol: "SOL", price: "$145.20", change1H: "+1.20%", change1D: "+4.50%", fdv: "$68.2B", vol: "$850M", color: "#14F195", isPos1h: true, isPos1d: true, geckoId: "coingecko:solana" },
+  { rank: 5, name: "Wrapped BTC", symbol: "WBTC", price: "$64,210.00", change1H: "-0.12%", change1D: "+1.40%", fdv: "$9.8B", vol: "$320M", color: "#F7931A", isPos1h: false, isPos1d: true, geckoId: "coingecko:wrapped-bitcoin" },
 ];
 
 function MiniSparkline({ color, isPositive }: { color: string, isPositive: boolean }) {
@@ -38,6 +39,36 @@ function MiniSparkline({ color, isPositive }: { color: string, isPositive: boole
 }
 
 export default function ExplorePage() {
+  const [tokens, setTokens] = useState(INITIAL_TOKENS);
+
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const ids = INITIAL_TOKENS.map(t => t.geckoId).join(",");
+        const res = await fetch(`https://coins.llama.fi/prices/current/${ids}`);
+        const data = await res.json();
+        if (data && data.coins) {
+          const updated = INITIAL_TOKENS.map(t => {
+            const coinData = data.coins[t.geckoId];
+            if (coinData && coinData.price) {
+              return {
+                ...t,
+                price: `$${coinData.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              };
+            }
+            return t;
+          });
+          setTokens(updated);
+        }
+      } catch (err) {
+        console.error("Failed to fetch live token prices:", err);
+      }
+    }
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <>
       <SiteHeader />
@@ -45,6 +76,7 @@ export default function ExplorePage() {
       <main className="flex-1 flex flex-col w-full relative pt-12 pb-24 overflow-x-hidden min-h-screen">
         
         <div className="max-w-6xl mx-auto w-full px-4 sm:px-6">
+
           
           {/* TOP STATS ROW */}
           <div className="flex flex-wrap gap-10 md:gap-20 py-8 border-b border-line mb-8">
@@ -185,7 +217,7 @@ export default function ExplorePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {TOP_TOKENS.map((token) => (
+                  {tokens.map((token) => (
                     <tr key={token.rank} className="border-b border-line/50 hover:bg-white/[0.02] transition-colors group cursor-pointer">
                       <td className="py-5 px-4 text-mist">{token.rank}</td>
                       <td className="py-5 px-4">

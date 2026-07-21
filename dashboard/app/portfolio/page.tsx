@@ -2,10 +2,12 @@
 
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/cta-footer";
-import { useAccount, useBalance, useEnsName } from "wagmi";
+import { useAccount, useBalance, useEnsName, useReadContract } from "wagmi";
 import { useModal } from "connectkit";
 import { cn } from "@/lib/cn";
 import { formatUnits } from "viem";
+import { ERC20_ABI } from "@/lib/pow-abis";
+import { POW_CONFIG } from "@/lib/pow-config";
 
 export default function PortfolioPage() {
   const { address, isConnected } = useAccount();
@@ -13,16 +15,58 @@ export default function PortfolioPage() {
   const { data: ensName } = useEnsName({ address });
   const { setOpen } = useModal();
 
-  // Fake sub-balances for the demo to make the UI look like a real active portfolio
-  const fakeTokens = [
-    { name: "USD Coin", symbol: "USDC", balance: "840.50", value: "$840.50", change: "+0.00%", isPos: true, color: "#2775CA" },
-    { name: "HALON", symbol: "HLN", balance: "420.00", value: "$62.10", change: "+5.40%", isPos: true, color: "#CDFF71" },
-    { name: "Ethereum", symbol: "ETH", balance: "0.008", value: "$26.12", change: "-1.20%", isPos: false, color: "#627EEA" }
+  const { data: usdgBalance } = useReadContract({
+    address: POW_CONFIG.mockUSDGAddress,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address }
+  });
+
+  const { data: aaplBalance } = useReadContract({
+    address: POW_CONFIG.mockAAPLAddress,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address }
+  });
+
+  const realTokens = [
+    {
+      name: "USDG Stablecoin",
+      symbol: "USDG",
+      balance: usdgBalance ? Number(formatUnits(usdgBalance, 18)).toFixed(2) : "0.00",
+      value: usdgBalance ? `$${Number(formatUnits(usdgBalance, 18)).toFixed(2)}` : "$0.00",
+      change: "+0.00%",
+      isPos: true,
+      color: "#2775CA"
+    },
+    {
+      name: "Tokenized Apple Stock",
+      symbol: "AAPL",
+      balance: aaplBalance ? Number(formatUnits(aaplBalance, 18)).toFixed(2) : "0.00",
+      value: aaplBalance ? `$${(Number(formatUnits(aaplBalance, 18)) * 150).toFixed(2)}` : "$0.00",
+      change: "+1.20%",
+      isPos: true,
+      color: "#CDFF71"
+    },
+    {
+      name: "Ethereum",
+      symbol: "ETH",
+      balance: balance ? Number(formatUnits(balance.value, balance.decimals)).toFixed(4) : "0.0000",
+      value: balance ? `$${(Number(formatUnits(balance.value, balance.decimals)) * 3400).toFixed(2)}` : "$0.00",
+      change: "-0.50%",
+      isPos: false,
+      color: "#627EEA"
+    }
   ];
 
-  const totalValueStr = balance 
-    ? (Number(formatUnits(balance.value, balance.decimals)) * 3400 + 840.50 + 62.10).toFixed(2)
-    : "928.72";
+  const totalValueStr = (
+    (usdgBalance ? Number(formatUnits(usdgBalance, 18)) : 0) +
+    (aaplBalance ? Number(formatUnits(aaplBalance, 18)) * 150 : 0) +
+    (balance ? Number(formatUnits(balance.value, balance.decimals)) * 3400 : 0)
+  ).toFixed(2);
+
 
   return (
     <>
@@ -138,7 +182,7 @@ export default function PortfolioPage() {
                   <div className="mt-8">
                     <h3 className="text-xl font-medium text-white mb-4">Tokens</h3>
                     <div className="space-y-2">
-                      {fakeTokens.map((token, i) => (
+                      {realTokens.map((token, i) => (
                         <div key={i} className="flex items-center justify-between p-4 bg-surface-2 rounded-2xl hover:bg-surface-3 transition-colors">
                           <div className="flex items-center gap-4">
                             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: token.color }}>
