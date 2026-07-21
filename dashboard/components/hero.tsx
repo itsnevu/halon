@@ -41,6 +41,8 @@ function Orb({
   );
 }
 
+import LottiePlayer from "@/components/ui/lottie-player";
+
 function HeroBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
@@ -59,8 +61,13 @@ function HeroBackdrop() {
         />
       </div>
 
+      {/* Lottie 3D Animation Background */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-75 mix-blend-screen scale-150 md:scale-125 lg:scale-100 mt-20">
+        <LottiePlayer animationPath="/lottie/hero.json" className="w-[800px] h-[800px]" />
+      </div>
+
       {/* Static two-tone wash under the moving orbs: lime up-left, mint down-right. */}
-      <div className="aurora absolute inset-0" />
+      <div className="aurora absolute inset-0 opacity-50" />
 
       <Orb
         className="absolute top-[34%] left-1/2 -translate-x-[78%] -translate-y-1/2"

@@ -12,6 +12,7 @@ import type { Agent, AgentRole } from "@/lib/types";
 import { Badge, StatusDot, type Tone } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { SectionArt } from "@/components/ui/section-art";
+import LottiePlayer from "@/components/ui/lottie-player";
 import artMeshRibbon from "@/public/art-mesh-ribbon.png";
 import { Reveal } from "@/components/ui/reveal";
 import { Sparkline } from "@/components/ui/sparkline";
@@ -371,11 +372,9 @@ export function AgentRegistry() {
       id="agents"
       wide
       art={
-        <SectionArt
-          src={artMeshRibbon}
-          sizes="100vw"
-          className="mask-fade-y inset-0 opacity-[0.14]"
-        />
+        <div className="absolute inset-x-0 -top-48 -z-10 h-[760px] flex justify-center opacity-40 mix-blend-screen pointer-events-none">
+          <LottiePlayer animationPath="/lottie/opportunities.json" className="w-[1000px] h-[1000px]" />
+        </div>
       }
       eyebrow="Reliability index"
       index="04"

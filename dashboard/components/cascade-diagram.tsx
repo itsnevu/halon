@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/ui/reveal";
 import { Section } from "@/components/ui/section";
 import { SectionArt } from "@/components/ui/section-art";
+import LottiePlayer from "@/components/ui/lottie-player";
 import iconCascade from "@/public/icon-cascade.png";
 import artChain from "@/public/art-chain.png";
 import {
@@ -371,12 +372,9 @@ export function CascadeDiagram() {
       clip={false}
       icon={iconCascade}
       art={
-        <SectionArt
-          src={artChain}
-          contain
-          sizes="100vw"
-          className="mask-fade-y inset-x-0 -top-48 -z-10 h-[760px] opacity-[0.18]"
-        />
+        <div className="absolute inset-x-0 -top-48 -z-10 h-[760px] flex justify-center opacity-40 mix-blend-screen pointer-events-none">
+          <LottiePlayer animationPath="/lottie/stack.json" className="w-[1000px] h-[1000px]" />
+        </div>
       }
       eyebrow="The cascade"
       index="01"
