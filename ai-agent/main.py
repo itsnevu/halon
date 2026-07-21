@@ -11,6 +11,7 @@ class ClientHistory(BaseModel):
 
 @app.post("/verify-milestone")
 async def verify_milestone(
+    project_address: str = Form(...),
     milestone_id: int = Form(...),
     client_disputes: int = Form(0),
     client_late_days: int = Form(0),
@@ -34,6 +35,7 @@ async def verify_milestone(
     score = calculate_risk_score(client_history, extracted_text)
     
     response = {
+        "project_address": project_address,
         "milestone_id": milestone_id,
         "filename": file.filename,
         "ai_score": score,
@@ -43,7 +45,7 @@ async def verify_milestone(
     
     # Step 3: Trigger on-chain approval if score > 80
     if score >= 80:
-        tx_hash = trigger_smart_contract_approval(milestone_id, score)
+        tx_hash = trigger_smart_contract_approval(project_address, milestone_id, score)
         response["status"] = "approved_on_chain"
         response["tx_hash"] = tx_hash
     else:

@@ -1,25 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { ESCROW_PROJECT_ABI } from "../../../lib/pow-abis";
+import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseUnits, formatUnits } from "viem";
+import { ESCROW_FACTORY_ABI, ESCROW_PROJECT_ABI } from "../../../lib/pow-abis";
 import { POW_CONFIG } from "../../../lib/pow-config";
 
 export default function FreelancerDashboard() {
+  const { address, isConnected } = useAccount();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "analyzing" | "approved" | "rejected">("idle");
   const [aiScore, setAiScore] = useState<number | null>(null);
-  const [milestoneId] = useState(0); // Mock active milestone ID
+  const [milestoneId] = useState(0); // Active milestone ID
 
   const { data: hash, writeContract, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
+  // Get Deployed Projects Count from Factory to find the latest project
+  const { data: projectCount } = useReadContract({
+    address: POW_CONFIG.escrowFactoryAddress,
+    abi: ESCROW_FACTORY_ABI,
+    functionName: 'getDeployedProjectsCount',
+  });
+
+  const lastProjectIndex = projectCount ? Number(projectCount) - 1 : -1;
+  const { data: lastProjectAddress } = useReadContract({
+    address: POW_CONFIG.escrowFactoryAddress,
+    abi: ESCROW_FACTORY_ABI,
+    functionName: 'deployedProjects',
+    args: [BigInt(lastProjectIndex >= 0 ? lastProjectIndex : 0)],
+    query: { enabled: lastProjectIndex >= 0 }
+  });
+
+  // Read current milestone 0 details from the project
+  const { data: milestone0, refetch: refetchMilestone } = useReadContract({
+    address: lastProjectAddress as `0x${string}`,
+    abi: ESCROW_PROJECT_ABI,
+    functionName: 'milestones',
+    args: [BigInt(0)],
+    query: { enabled: !!lastProjectAddress }
+  });
+
   const handleUpload = async () => {
     if (!file) return alert("Please select a file first");
+    if (!lastProjectAddress) return alert("No active project escrow found to upload to.");
     
     setStatus("uploading");
     
     const formData = new FormData();
+    formData.append("project_address", lastProjectAddress);
     formData.append("file", file);
     formData.append("milestone_id", milestoneId.toString());
     formData.append("client_disputes", "0");
@@ -38,6 +67,8 @@ export default function FreelancerDashboard() {
       
       if (result.status === "approved_on_chain") {
         setStatus("approved");
+        // Refetch to see updated milestone details on-chain
+        setTimeout(() => refetchMilestone(), 3000);
       } else {
         setStatus("rejected");
       }
@@ -49,13 +80,21 @@ export default function FreelancerDashboard() {
   };
 
   const handleClaim = () => {
+    if (!lastProjectAddress) return;
     writeContract({
-      address: POW_CONFIG.escrowFactoryAddress as `0x${string}`, // Target Escrow Contract
+      address: lastProjectAddress as `0x${string}`,
       abi: ESCROW_PROJECT_ABI,
       functionName: 'releaseMilestone',
       args: [BigInt(milestoneId)],
     });
   };
+
+  // Determine available payout display
+  const milestoneAmountStr = milestone0 
+    ? `${Number(formatUnits(BigInt(milestone0[1]), 18)).toLocaleString()} USDG` 
+    : "$0.00 USDG";
+
+  const isPaid = milestone0 ? milestone0[6] : false;
 
   return (
     <div className="py-10 px-5 sm:px-8 max-w-7xl mx-auto space-y-10">
@@ -75,7 +114,7 @@ export default function FreelancerDashboard() {
             <div>
               <div className="text-xs text-mist font-mono uppercase">Available Payout</div>
               <div className="text-lg font-bold text-mint font-display font-mono">
-                {isConfirmed ? "$0.00" : (status === "approved" ? "$3,000.00 USDG" : "$0.00")}
+                {isPaid ? "Claimed" : (status === "approved" || (milestone0 && milestone0[3] && milestone0[5]) ? milestoneAmountStr : "$0.00 USDG")}
               </div>
             </div>
           </div>
@@ -87,19 +126,27 @@ export default function FreelancerDashboard() {
         <div className="lg:col-span-7 rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold font-display text-white">Submit Work Proof</h2>
-            <span className="text-xs font-mono text-mint bg-mint/10 px-3 py-1 rounded-full border border-mint/20">Milestone #1</span>
+            <span className="text-xs font-mono text-mint bg-mint/10 px-3 py-1 rounded-full border border-mint/20">
+              {lastProjectAddress ? `Active Project: ${lastProjectAddress.slice(0, 8)}...` : "No Deployed Project"}
+            </span>
           </div>
 
           <div className="border-2 border-dashed border-line rounded-3xl p-8 text-center bg-surface/50 space-y-5">
-            {status === "approved" || status === "rejected" ? (
-              <div className={status === "approved" ? "text-mint space-y-3" : "text-danger space-y-3"}>
-                <div className={`size-16 rounded-full mx-auto flex items-center justify-center ${status === "approved" ? "bg-mint/10 border border-mint/30" : "bg-danger/10 border border-danger/30"}`}>
+            {status === "approved" || status === "rejected" || (milestone0 && milestone0[3]) ? (
+              <div className={(status === "approved" || (milestone0 && milestone0[3])) ? "text-mint space-y-3" : "text-danger space-y-3"}>
+                <div className={`size-16 rounded-full mx-auto flex items-center justify-center ${(status === "approved" || (milestone0 && milestone0[3])) ? "bg-mint/10 border border-mint/30" : "bg-danger/10 border border-danger/30"}`}>
                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={status === "approved" ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={(status === "approved" || (milestone0 && milestone0[3])) ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold font-display">{status === "approved" ? "Verification Approved!" : "Submission Rejected"}</h3>
-                <p className="text-xs text-mist">{status === "approved" ? "On-chain milestone release authorization signed by AI relayer." : "Risk score below threshold."}</p>
+                <h3 className="text-2xl font-bold font-display">
+                  {(status === "approved" || (milestone0 && milestone0[3])) ? "Verification Approved!" : "Submission Rejected"}
+                </h3>
+                <p className="text-xs text-mist">
+                  {(status === "approved" || (milestone0 && milestone0[3])) 
+                    ? "On-chain milestone release authorization signed by AI relayer." 
+                    : "Risk score below threshold."}
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -121,7 +168,7 @@ export default function FreelancerDashboard() {
 
                 <button 
                   onClick={handleUpload}
-                  disabled={status !== "idle" || !file}
+                  disabled={status !== "idle" || !file || !lastProjectAddress}
                   className="w-full py-4 rounded-full font-semibold bg-mint text-black hover:bg-mint/90 disabled:opacity-40 disabled:pointer-events-none transition-all duration-200 text-sm shadow-lg shadow-mint/20"
                 >
                   {status === "idle" ? "Upload Work & Run AI Verification" : "AI Agent Processing..."}
@@ -136,7 +183,7 @@ export default function FreelancerDashboard() {
           <div className="rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8 space-y-6">
             <h2 className="text-xl font-bold font-display text-white">AI Telemetry & Verification</h2>
 
-            {aiScore === null ? (
+            {aiScore === null && !(milestone0 && milestone0[3]) ? (
               <div className="flex flex-col items-center justify-center h-48 border border-line/60 rounded-2xl bg-surface/30 text-center p-6 space-y-3">
                 {status === "analyzing" ? (
                   <>
@@ -150,17 +197,19 @@ export default function FreelancerDashboard() {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className={`p-6 rounded-2xl border ${status === "approved" ? "bg-mint/10 border-mint/30" : "bg-danger/10 border-danger/30"} space-y-3`}>
+                <div className={`p-6 rounded-2xl border ${(status === "approved" || (milestone0 && milestone0[3])) ? "bg-mint/10 border-mint/30" : "bg-danger/10 border-danger/30"} space-y-3`}>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono uppercase tracking-wider text-mist">AI Risk Score</span>
-                    <span className={`text-3xl font-extrabold font-display ${status === "approved" ? "text-mint" : "text-danger"}`}>{aiScore} / 100</span>
+                    <span className={`text-3xl font-extrabold font-display ${(status === "approved" || (milestone0 && milestone0[3])) ? "text-mint" : "text-danger"}`}>
+                      {aiScore !== null ? aiScore : Number(milestone0?.[4])} / 100
+                    </span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-ink-2 overflow-hidden border border-line">
-                    <div className={`h-full ${status === "approved" ? "bg-mint" : "bg-danger"}`} style={{ width: `${aiScore}%` }} />
+                    <div className={`h-full ${(status === "approved" || (milestone0 && milestone0[3])) ? "bg-mint" : "bg-danger"}`} style={{ width: `${aiScore !== null ? aiScore : Number(milestone0?.[4])}%` }} />
                   </div>
                 </div>
 
-                {status === "approved" && (
+                {(status === "approved" || (milestone0 && milestone0[3])) && (
                   <div className="space-y-4">
                     <div className="space-y-2 text-xs text-mist border-l-2 border-mint pl-4 py-1">
                       <div className="text-white font-semibold">✅ Document OCR parsed cleanly</div>
@@ -170,13 +219,13 @@ export default function FreelancerDashboard() {
 
                     <button 
                       onClick={handleClaim}
-                      disabled={isPending || isConfirming || isConfirmed}
+                      disabled={isPending || isConfirming || isPaid}
                       className={`w-full py-4 rounded-full font-bold text-sm transition-all duration-200 shadow-lg
-                        ${isConfirmed ? "bg-surface-3 text-mist border border-line" : (isPending || isConfirming) ? "bg-surface-3 text-mist cursor-wait" : "bg-lime text-lime-ink hover:bg-lime-soft glow-lime-sm"}`}
+                        ${isPaid ? "bg-surface-3 text-mist border border-line" : (isPending || isConfirming) ? "bg-surface-3 text-mist cursor-wait" : "bg-lime text-lime-ink hover:bg-lime-soft glow-lime-sm"}`}
                     >
-                      {isConfirmed ? "Milestone Claimed On-Chain!" : 
+                      {isPaid ? "Milestone Claimed On-Chain!" : 
                        isConfirming ? "Confirming tx..." : 
-                       isPending ? "Sign in wallet..." : "Claim $3,000 Milestone Payout"}
+                       isPending ? "Sign in wallet..." : "Claim Milestone Payout"}
                     </button>
 
                     {hash && <div className="text-xs text-mist font-mono text-center truncate">Tx: {hash}</div>}

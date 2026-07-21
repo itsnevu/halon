@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
 import { MORPHO_VAULT_ABI } from "../../../lib/pow-abis";
 import { POW_CONFIG } from "../../../lib/pow-config";
 
 export default function LPDashboard() {
+  const { address } = useAccount();
   const [depositAmount, setDepositAmount] = useState("");
 
   const { data: totalAssets } = useReadContract({
@@ -19,13 +20,13 @@ export default function LPDashboard() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
   const handleDeposit = () => {
-    if (!depositAmount) return;
+    if (!depositAmount || !address) return;
     
     writeContract({
       address: POW_CONFIG.mockMorphoVaultAddress,
       abi: MORPHO_VAULT_ABI,
       functionName: 'deposit',
-      args: [parseUnits(depositAmount, 18), "0x0000000000000000000000000000000000000000"], // Receiver
+      args: [parseUnits(depositAmount, 18), address], // Receiver is the depositor
     });
   };
 
