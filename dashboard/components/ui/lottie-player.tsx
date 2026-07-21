@@ -23,11 +23,10 @@ export default function LottiePlayer({ animationPath, className, loop = true }: 
 
   return (
     <div className={className}>
-      {/* @ts-expect-error lottie-web supports canvas, but lottie-react typings restrict it to svg */}
       <Lottie 
         animationData={animationData} 
         loop={loop} 
-        renderer="canvas"
+        {...({ renderer: "canvas" } as any)}
         rendererSettings={{ preserveAspectRatio: 'xMidYMid slice' }}
       />
     </div>
