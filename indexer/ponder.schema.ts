@@ -1,22 +1,20 @@
-import { createSchema } from "@ponder/core";
+import { onchainTable } from "@ponder/core";
 
-export default createSchema((p) => ({
-  IntentPolicy: p.createTable({
-    id: p.string(), // policyId
-    intentId: p.string(), // mapped from insuredOrderId -> intentId
-    beneficiary: p.string(),
-    coverage: p.bigint(),
-    premium: p.bigint(),
-    status: p.string(), // "Armed", "Discharged", "Settled"
-    boundAt: p.int(),
-    expiresAt: p.int(),
-  }),
-  
-  Claim: p.createTable({
-    id: p.string(), // attestation hash or unique claim ID
-    policyId: p.string().references("IntentPolicy.id"),
-    outcome: p.int(), // 0 = Failed, 1 = Expired
-    dischargedAt: p.int(),
-    dischargedBy: p.string(),
-  }),
+export const IntentPolicy = onchainTable("IntentPolicy", (p) => ({
+  id: p.text().primaryKey(),
+  intentId: p.text(),
+  beneficiary: p.text(),
+  coverage: p.bigint(),
+  premium: p.bigint(),
+  status: p.text(),
+  boundAt: p.integer(),
+  expiresAt: p.integer(),
+}));
+
+export const Claim = onchainTable("Claim", (p) => ({
+  id: p.text().primaryKey(),
+  policyId: p.text(),
+  outcome: p.integer(),
+  dischargedAt: p.integer(),
+  dischargedBy: p.text(),
 }));

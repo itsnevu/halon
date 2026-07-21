@@ -1,0 +1,676 @@
+(() => {
+  const PAGE_BG = "#044AB3";
+  const BASE_COLOR = "#FFFFFF";
+
+  const CFG = {
+    radiusFactor: 0.43,
+    radiusFactorDesktop: 0.30,
+    countDesktop: 130,
+    countMobile: 110,
+    dotMin: 2.0,
+    dotMax: 3.3,
+    lineWidth: 1.0,
+    windAmpPx: 52,
+    windFreq: 0.16,
+    windPhaseDrift: 0.06,
+    stiffness: 12.0,
+    damping: 4.8,
+    maxBendPx: 300,
+    midBoost: 1.95,
+    mouseRadius: 155,
+    impulseForce: 3900,
+    impulseFalloff: 1.7,
+    globalRotateSpeed: 0.055,
+    flowSpeed: 0.2,
+    flowWidth: 0.3,
+    flowBaseAlpha: 0.14,
+    flowPeakAlpha: 0.58,
+    labelPad: 10,
+    labelOffsetMin: 26,
+    labelOffsetMax: 40,
+    labelClamp: 12,
+    labelMinGapPx: 44,
+    labelEdgePad: 14,
+    labelClearDotPx: 8,
+    labelNudgeStepPx: 3,
+    labelNudgeMaxIters: 64,
+    labelBatchSizeDesktop: 5,
+    labelBatchSizeMobile: 3,
+    labelInDur: 0.45,
+    labelOutDur: 0.55,
+    labelShowHoldMin: 1.0,
+    labelShowHoldMax: 2.0,
+    labelInStaggerMin: 0.14,
+    labelInStaggerMax: 0.42,
+    labelOutStaggerMin: 0.12,
+    labelOutStaggerMax: 0.38,
+    labelBatchGap: 0.25,
+    resizeFullMinPx: 48,
+    resizeFullMinRatio: 0.06,
+    labelFontBreakpoints: [
+      { minWidth: 0, px: 9 },
+      { minWidth: 480, px: 10 },
+      { minWidth: 768, px: 11 },
+      { minWidth: 1024, px: 12 },
+      { minWidth: 1280, px: 14 },
+      { minWidth: 1536, px: 14 },
+    ],
+  };
+
+  const TOKENS = [
+    "TOKENIZATION...", "EMBEDDING...", "VECTORIZE...", "INFERENCE...",
+    "LATENT FLOW...", "BATCHING...", "ENCODING...", "DECODING...",
+    "SIGNAL MAP...", "INDEXING...", "ROUTING...", "SYNTHESIS...",
+    "SEMANTIC...", "ATTENTION...", "RETRIEVAL...", "PIPELINE...",
+  ];
+
+  const wrap = document.getElementById("strings-wrap");
+  const canvas = document.getElementById("strings-canvas");
+  if (!wrap || !canvas) return;
+
+  const viewport = wrap.closest(".strings-viewport") || wrap;
+
+  const ctx = canvas.getContext("2d", { alpha: false });
+
+  let w = 1, h = 1, cx = 0, cy = 0, R = 1, dpr = 1;
+  let raf = 0, lastTs = performance.now(), rotation = 0;
+
+  let isInViewport = true;
+  let isPageVisible = document.visibilityState !== "hidden";
+  let io = null;
+
+  let nodes = [];
+  let labels = [];
+  let batchEndAt = 0;
+
+  let resizeRaf = 0;
+  let lastW = 0;
+  let lastH = 0;
+  let lastIsMobile = null;
+
+  const mouse = { x: -9999, y: -9999, active: false, vx: 0, vy: 0, px: -9999, py: -9999 };
+  const enablePointerFx = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const isTouchLike = !enablePointerFx;
+
+  const mqDesktopRing = window.matchMedia("(min-width: 991px)");
+  const mqMobile = window.matchMedia("(max-width: 767px)");
+
+  document.documentElement.style.background = PAGE_BG;
+  document.body.style.background = PAGE_BG;
+  document.body.style.margin = "0";
+
+  function isMobile() {
+    return mqMobile.matches;
+  }
+
+  function ringFactorForViewport() {
+    return mqDesktopRing.matches ? CFG.radiusFactorDesktop : CFG.radiusFactor;
+  }
+
+  function labelFontPx() {
+    const width = wrap.clientWidth;
+    let px = CFG.labelFontBreakpoints[0].px;
+    for (let i = 0; i < CFG.labelFontBreakpoints.length; i++) {
+      const step = CFG.labelFontBreakpoints[i];
+      if (width >= step.minWidth) px = step.px;
+    }
+    return px;
+  }
+
+  function textBounds(text, x, y, align) {
+    const m = ctx.measureText(text);
+    const fh = labelFontPx();
+    const tw = m.width;
+    const ascent = m.actualBoundingBoxAscent ?? fh * 0.72;
+    const descent = m.actualBoundingBoxDescent ?? fh * 0.28;
+    let left;
+    let right;
+    if (align === "left") {
+      left = x;
+      right = x + tw;
+    } else {
+      right = x;
+      left = x - tw;
+    }
+    return {
+      left,
+      right,
+      top: y - ascent,
+      bottom: y + descent,
+    };
+  }
+
+  function circleIntersectsRect(px, py, pr, b) {
+    const closestX = Math.max(b.left, Math.min(px, b.right));
+    const closestY = Math.max(b.top, Math.min(py, b.bottom));
+    const dx = px - closestX;
+    const dy = py - closestY;
+    return dx * dx + dy * dy < pr * pr;
+  }
+
+  function clampLabelDrawXY(text, x, y, nx) {
+    const align = nx >= 0 ? "left" : "right";
+    const padX = CFG.labelClamp;
+    const fh = labelFontPx();
+    const padY = Math.max(CFG.labelClamp, fh * 0.65);
+    const m = ctx.measureText(text);
+    const tw = m.width;
+
+    let tx = x;
+    if (align === "left") {
+      if (tx < padX) tx = padX;
+      if (tx + tw > w - padX) tx = w - padX - tw;
+    } else {
+      if (tx > w - padX) tx = w - padX;
+      if (tx - tw < padX) tx = padX + tw;
+    }
+
+    let ty = y;
+    const ascent = m.actualBoundingBoxAscent ?? fh * 0.72;
+    const descent = m.actualBoundingBoxDescent ?? fh * 0.28;
+    if (ty - ascent < padY) ty = padY + ascent;
+    if (ty + descent > h - padY) ty = h - padY - descent;
+
+    return { x: tx, y: ty, align };
+  }
+
+  function placeLabelClearDot(text, x0, y0, nx, ny, ex, ey, dotR) {
+    const step = CFG.labelNudgeStepPx;
+    const maxIters = CFG.labelNudgeMaxIters;
+    const rr = dotR + CFG.labelClearDotPx;
+
+    let x = x0;
+    let y = y0;
+
+    for (let k = 0; k < maxIters; k++) {
+      const placed = clampLabelDrawXY(text, x, y, nx);
+      const b = textBounds(text, placed.x, placed.y, placed.align);
+      if (!circleIntersectsRect(ex, ey, rr, b)) return placed;
+      x += nx * step;
+      y += ny * step;
+    }
+
+    return clampLabelDrawXY(text, x, y, nx);
+  }
+
+  function labelRadialBase() {
+    const fh = labelFontPx();
+    return Math.max(22 + CFG.labelPad, CFG.dotMax + CFG.labelClearDotPx + fh * 0.85);
+  }
+
+  function hash(n) {
+    const x = Math.sin(n * 127.1) * 43758.5453123;
+    return x - Math.floor(x);
+  }
+
+  function rand(min, max) {
+    return min + Math.random() * (max - min);
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function resize() {
+    w = Math.max(1, wrap.clientWidth);
+    h = Math.max(1, wrap.clientHeight);
+    cx = w * 0.5;
+    cy = h * 0.5;
+    R = Math.min(w, h) * ringFactorForViewport();
+
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function buildNodes() {
+    const count = isMobile() ? CFG.countMobile : CFG.countDesktop;
+    nodes = new Array(count);
+
+    for (let i = 0; i < count; i++) {
+      const baseAngle = (i / count) * Math.PI * 2;
+      const seed = i * 19.37;
+
+      nodes[i] = {
+        baseAngle,
+        dotR: CFG.dotMin + hash(seed + 9.9) * (CFG.dotMax - CFG.dotMin),
+        nx: 0, ny: 0,
+        bend: 0, vel: 0,
+        phase: hash(seed + 1.1) * Math.PI * 2,
+        freqJ: 0.65 + hash(seed + 2.7) * 0.7,
+        ampJ: 0.75 + hash(seed + 4.8) * 0.8,
+      };
+    }
+  }
+
+  function endpointForIndex(i) {
+    const n = nodes[i];
+    const a = n.baseAngle + rotation;
+    return { a, x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R };
+  }
+
+  function pointLineDistanceWithT(px, py, x1, y1, x2, y2) {
+    const vx = x2 - x1, vy = y2 - y1;
+    const wx = px - x1, wy = py - y1;
+    const c2 = vx * vx + vy * vy || 1;
+    let t = (wx * vx + wy * vy) / c2;
+    if (t < 0) t = 0;
+    if (t > 1) t = 1;
+    const sx = x1 + t * vx;
+    const sy = y1 + t * vy;
+    return { d: Math.hypot(px - sx, py - sy), t };
+  }
+
+  function updatePointerFromClient(clientX, clientY) {
+    const r = canvas.getBoundingClientRect();
+
+    if (clientX < r.left || clientX > r.right || clientY < r.top || clientY > r.bottom) {
+      mouse.active = false;
+      mouse.vx = mouse.vy = 0;
+      return;
+    }
+
+    const sx = w / r.width;
+    const sy = h / r.height;
+    const nx = (clientX - r.left) * sx;
+    const ny = (clientY - r.top) * sy;
+
+    mouse.vx = nx - mouse.px;
+    mouse.vy = ny - mouse.py;
+    mouse.px = nx;
+    mouse.py = ny;
+    mouse.x = nx;
+    mouse.y = ny;
+    mouse.active = true;
+  }
+
+  function pickLabelText(used) {
+    const pool = TOKENS.filter((t) => !used.has(t));
+    const src = pool.length ? pool : TOKENS;
+    return src[(Math.random() * src.length) | 0];
+  }
+
+  function canPlaceLabel(x, y, chosen) {
+    for (let i = 0; i < chosen.length; i++) {
+      const d = Math.hypot(x - chosen[i].x, y - chosen[i].y);
+      if (d < CFG.labelMinGapPx) return false;
+    }
+    return true;
+  }
+
+  function minLabelSpawnRadial() {
+    return labelRadialBase() + CFG.labelOffsetMin * 0.35;
+  }
+
+  function buildLabelBatch(nowSec) {
+    const batchSize = isMobile() ? CFG.labelBatchSizeMobile : CFG.labelBatchSizeDesktop;
+    const chosen = [];
+    const usedNode = new Set();
+    const usedText = new Set();
+    let tries = 0;
+
+    const r0 = minLabelSpawnRadial();
+
+    while (chosen.length < batchSize && tries < 1600) {
+      tries++;
+      const nodeIndex = (Math.random() * nodes.length) | 0;
+      if (usedNode.has(nodeIndex)) continue;
+
+      const ep = endpointForIndex(nodeIndex);
+      const nx = Math.cos(ep.a);
+      const ny = Math.sin(ep.a);
+
+      let x = ep.x + nx * (rand(r0, r0 + (CFG.labelOffsetMax - CFG.labelOffsetMin)) + CFG.labelPad);
+      let y = ep.y + ny * (rand(CFG.labelOffsetMin, CFG.labelOffsetMax) + CFG.labelPad);
+
+      if (Math.abs(nx) < 0.35) x += (nx >= 0 ? 1 : -1) * 10;
+      y += rand(-10, 10);
+
+      x = Math.max(CFG.labelEdgePad, Math.min(w - CFG.labelEdgePad, x));
+      y = Math.max(CFG.labelEdgePad, Math.min(h - CFG.labelEdgePad, y));
+
+      if (!canPlaceLabel(x, y, chosen)) continue;
+
+      const text = pickLabelText(usedText);
+      chosen.push({ nodeIndex, text, x, y });
+      usedNode.add(nodeIndex);
+      usedText.add(text);
+    }
+
+    while (chosen.length < batchSize) {
+      const nodeIndex = (Math.random() * nodes.length) | 0;
+      const ep = endpointForIndex(nodeIndex);
+      const nx = Math.cos(ep.a);
+      const ny = Math.sin(ep.a);
+      const rr = minLabelSpawnRadial();
+      let x = ep.x + nx * (rand(rr, rr + 24) + CFG.labelPad);
+      let y = ep.y + ny * (rand(CFG.labelOffsetMin, CFG.labelOffsetMax) + CFG.labelPad);
+      x = Math.max(CFG.labelEdgePad, Math.min(w - CFG.labelEdgePad, x));
+      y = Math.max(CFG.labelEdgePad, Math.min(h - CFG.labelEdgePad, y));
+      const text = pickLabelText(usedText);
+      chosen.push({ nodeIndex, text, x, y });
+      usedText.add(text);
+    }
+
+    const inOrder = shuffle([...Array(batchSize).keys()]);
+    const outOrder = shuffle([...Array(batchSize).keys()]);
+    const inDelay = new Array(batchSize).fill(0);
+    const outDelay = new Array(batchSize).fill(0);
+
+    let accIn = 0;
+    for (let k = 0; k < batchSize; k++) {
+      const idx = inOrder[k];
+      inDelay[idx] = accIn;
+      accIn += rand(CFG.labelInStaggerMin, CFG.labelInStaggerMax);
+    }
+
+    const hold = rand(CFG.labelShowHoldMin, CFG.labelShowHoldMax);
+    let accOut = accIn + hold;
+    for (let k = 0; k < batchSize; k++) {
+      const idx = outOrder[k];
+      outDelay[idx] = accOut;
+      accOut += rand(CFG.labelOutStaggerMin, CFG.labelOutStaggerMax);
+    }
+
+    labels = chosen.map((c, i) => ({
+      ...c,
+      inStart: nowSec + inDelay[i],
+      inEnd: nowSec + inDelay[i] + CFG.labelInDur,
+      outStart: nowSec + outDelay[i],
+      outEnd: nowSec + outDelay[i] + CFG.labelOutDur,
+    }));
+
+    batchEndAt = Math.max(...labels.map((l) => l.outEnd)) + CFG.labelBatchGap;
+  }
+
+  function labelAlpha(nowSec, lb) {
+    if (nowSec < lb.inStart) return 0;
+    if (nowSec < lb.inEnd) return (nowSec - lb.inStart) / Math.max(0.0001, CFG.labelInDur);
+    if (nowSec < lb.outStart) return 1;
+    if (nowSec < lb.outEnd) return 1 - (nowSec - lb.outStart) / Math.max(0.0001, CFG.labelOutDur);
+    return 0;
+  }
+
+  function cycDist(a, b) {
+    const d = Math.abs(a - b);
+    return Math.min(d, 1 - d);
+  }
+
+  function pulseAlpha(u, phase, width, base, peak) {
+    const d = cycDist(u, phase);
+    const x = Math.max(0, 1 - d / width);
+    const s = x * x * (3 - 2 * x);
+    return base + (peak - base) * s;
+  }
+
+  function stopLoop() {
+    if (raf) {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    }
+  }
+
+  function startLoop() {
+    if (!raf && isInViewport && isPageVisible) {
+      lastTs = performance.now();
+      raf = requestAnimationFrame(draw);
+    }
+  }
+
+  function syncLoopState() {
+    if (isInViewport && isPageVisible) startLoop();
+    else stopLoop();
+  }
+
+  function draw(ts) {
+    const dt = Math.min(0.033, (ts - lastTs) / 1000);
+    lastTs = ts;
+    const t = ts * 0.001;
+    const flowPhase = (t * CFG.flowSpeed) % 1;
+
+    rotation += CFG.globalRotateSpeed * dt;
+
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = PAGE_BG;
+    ctx.fillRect(0, 0, w, h);
+
+    const drift = t * CFG.windPhaseDrift;
+    ctx.lineWidth = CFG.lineWidth;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      const a = n.baseAngle + rotation;
+      const ex = cx + Math.cos(a) * R;
+      const ey = cy + Math.sin(a) * R;
+
+      const dx = ex - cx;
+      const dy = ey - cy;
+      const len = Math.hypot(dx, dy) || 1;
+      n.nx = -dy / len;
+      n.ny = dx / len;
+
+      const baseBend = Math.sin(t * CFG.windFreq * n.freqJ + n.phase + drift) * (CFG.windAmpPx * n.ampJ);
+
+      if (enablePointerFx && mouse.active) {
+        const hit = pointLineDistanceWithT(mouse.x, mouse.y, cx, cy, ex, ey);
+        if (hit.d < CFG.mouseRadius) {
+          const f = 1 - hit.d / CFG.mouseRadius;
+          const falloff = Math.pow(f, CFG.impulseFalloff);
+          const along = Math.sin(Math.PI * hit.t);
+          const side = Math.sign((mouse.x - cx) * dy - (mouse.y - cy) * dx) || 1;
+          const mouseSpeed = Math.hypot(mouse.vx, mouse.vy);
+          const speedGain = Math.min(2.2, 0.55 + mouseSpeed * 0.085);
+          const impulse = side * falloff * along * CFG.impulseForce * speedGain;
+          n.vel += impulse * dt;
+        }
+      }
+
+      const acc = -CFG.stiffness * (n.bend - baseBend) - CFG.damping * n.vel;
+      n.vel += acc * dt;
+      n.bend += n.vel * dt;
+
+      if (n.bend > CFG.maxBendPx) n.bend = CFG.maxBendPx;
+      if (n.bend < -CFG.maxBendPx) n.bend = -CFG.maxBendPx;
+
+      const mx = (cx + ex) * 0.5;
+      const my = (cy + ey) * 0.5;
+      const cpx = mx + n.nx * n.bend * CFG.midBoost;
+      const cpy = my + n.ny * n.bend * CFG.midBoost;
+
+      const g = ctx.createLinearGradient(cx, cy, ex, ey);
+      const stops = 5;
+      for (let si = 0; si <= stops; si++) {
+        const u = si / stops;
+        const aPulse = pulseAlpha(u, flowPhase, CFG.flowWidth, CFG.flowBaseAlpha, CFG.flowPeakAlpha);
+        g.addColorStop(u, `rgba(255,255,255,${aPulse.toFixed(4)})`);
+      }
+
+      ctx.strokeStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.quadraticCurveTo(cpx, cpy, ex, ey);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = BASE_COLOR;
+    for (let i = 0; i < nodes.length; i++) {
+      const a = nodes[i].baseAngle + rotation;
+      const ex = cx + Math.cos(a) * R;
+      const ey = cy + Math.sin(a) * R;
+      ctx.beginPath();
+      ctx.arc(ex, ey, nodes[i].dotR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (!labels.length || t >= batchEndAt) buildLabelBatch(t);
+
+    ctx.font = `${labelFontPx()}px "FRAGMENT Mono", "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`;
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = BASE_COLOR;
+
+    const radBase = labelRadialBase();
+
+    for (let i = 0; i < labels.length; i++) {
+      const lb = labels[i];
+      const a = labelAlpha(t, lb);
+      if (a <= 0.001) continue;
+
+      const ep = endpointForIndex(lb.nodeIndex);
+      const nx = Math.cos(ep.a);
+      const ny = Math.sin(ep.a);
+
+      let x = ep.x + nx * radBase;
+      let y = ep.y + ny * radBase;
+
+      if (Math.abs(nx) < 0.35) x += (nx >= 0 ? 1 : -1) * 10;
+
+      x = Math.max(CFG.labelClamp, Math.min(w - CFG.labelClamp, x));
+      y = Math.max(CFG.labelClamp, Math.min(h - CFG.labelClamp, y));
+
+      const dotR = nodes[lb.nodeIndex].dotR;
+      const placed = placeLabelClearDot(lb.text, x, y, nx, ny, ep.x, ep.y, dotR);
+      ctx.textAlign = placed.align;
+      ctx.globalAlpha = a * 0.95;
+      ctx.fillText(lb.text, placed.x, placed.y);
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = BASE_COLOR;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (isInViewport && isPageVisible) {
+      raf = requestAnimationFrame(draw);
+    } else {
+      raf = 0;
+    }
+  }
+
+  function start() {
+    stopLoop();
+    resize();
+    buildNodes();
+    labels = [];
+    batchEndAt = 0;
+    lastIsMobile = isMobile();
+    lastW = w;
+    lastH = h;
+    syncLoopState();
+  }
+
+  function resizeSoft() {
+    resize();
+    const m = isMobile();
+    if (lastIsMobile !== null && m !== lastIsMobile) {
+      buildNodes();
+      labels = [];
+      batchEndAt = 0;
+    }
+    lastIsMobile = m;
+    lastW = w;
+    lastH = h;
+    syncLoopState();
+  }
+
+  function scheduleStart() {
+    if (resizeRaf) cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => {
+      resizeRaf = 0;
+      start();
+    });
+  }
+
+  function isBigResize(nextW, nextH) {
+    const dw = Math.abs(nextW - lastW);
+    const dh = Math.abs(nextH - lastH);
+    const minPx = CFG.resizeFullMinPx;
+    const ratio = CFG.resizeFullMinRatio;
+    return (
+      dw >= minPx ||
+      dh >= minPx ||
+      dw / Math.max(1, lastW) >= ratio ||
+      dh / Math.max(1, lastH) >= ratio
+    );
+  }
+
+  function smartResize() {
+    const nextW = Math.max(1, wrap.clientWidth);
+    const nextH = Math.max(1, wrap.clientHeight);
+
+    if (!lastW || !lastH) {
+      scheduleStart();
+      return;
+    }
+
+    const dw = Math.abs(nextW - lastW);
+    const dh = Math.abs(nextH - lastH);
+
+    if (!isTouchLike) {
+      if (isBigResize(nextW, nextH)) scheduleStart();
+      else if (dw >= 1 || dh >= 1) resizeSoft();
+      return;
+    }
+
+    if (dw >= 2) {
+      scheduleStart();
+      return;
+    }
+
+    const hThreshold = Math.max(80, lastH * 0.12);
+    if (dh >= hThreshold) scheduleStart();
+  }
+
+  if (enablePointerFx) {
+    window.addEventListener("mousemove", (e) => updatePointerFromClient(e.clientX, e.clientY));
+    window.addEventListener("mouseleave", () => {
+      mouse.active = false;
+      mouse.vx = mouse.vy = 0;
+    });
+    window.addEventListener("blur", () => {
+      mouse.active = false;
+      mouse.vx = mouse.vy = 0;
+    });
+  } else {
+    mouse.active = false;
+    mouse.vx = mouse.vy = 0;
+  }
+
+  mqDesktopRing.addEventListener("change", resizeSoft);
+  mqMobile.addEventListener("change", resizeSoft);
+
+  const ro = new ResizeObserver(smartResize);
+  ro.observe(wrap);
+
+  window.addEventListener("resize", smartResize, { passive: true });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", smartResize, { passive: true });
+  }
+
+  if ("IntersectionObserver" in window) {
+    io = new IntersectionObserver(
+      (entries) => {
+        const e = entries[0];
+        isInViewport = !!(e && e.isIntersecting);
+        syncLoopState();
+      },
+      { root: null, threshold: [0, 0.01, 0.05, 0.1, 0.25, 0.5] },
+    );
+    io.observe(wrap);
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    isPageVisible = document.visibilityState !== "hidden";
+    syncLoopState();
+  });
+
+  start();
+})();

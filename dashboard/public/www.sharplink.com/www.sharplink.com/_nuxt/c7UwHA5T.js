@@ -1,0 +1,1 @@
+import{M as a,a9 as l}from"./C167zuj8.js";function f(e,c){let t=null,r=null;const i=()=>{!e.value||t||(t=new ResizeObserver(s=>{for(const u of s){const o=u.contentRect.height;r!==o&&(r=o,c(o,u))}}),t.observe(e.value))},n=()=>{t&&(t.disconnect(),t=null,r=null)};return a(e,s=>{n(),s&&i()},{immediate:!0}),l(()=>{n()}),{stop:n,start:i}}export{f as u};

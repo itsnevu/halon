@@ -1,4 +1,4 @@
-import { EventType } from "@croo-network/sdk";
+import { EventType, DeliverableType } from "@croo-network/sdk";
 import { capClient, holdOpen } from "./lib/cap";
 import { log } from "./lib/chain";
 import { need } from "./lib/env";
@@ -60,7 +60,10 @@ async function main() {
       // Success: Submit proof
       try {
         log(SCOPE, `✅ SUCCESS: Intent ${intentId} executed. Submitting cryptographic proof.`);
-        await cap.deliverOrder(intentId, "https://basescan.org/tx/mock_proof");
+        await cap.deliverOrder(intentId, {
+          deliverableType: DeliverableType.Text,
+          deliverableText: "https://basescan.org/tx/mock_proof",
+        });
       } catch (error) {
         log(SCOPE, `failed to submit proof for ${intentId}:`, error);
       }

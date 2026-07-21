@@ -1,0 +1,1 @@
+import{ac as a,r as s,al as u}from"./C167zuj8.js";const{width:t}=u(),c=()=>{const o=a().public.breakpoints,e=typeof o?.mobile=="number"?o.mobile:768,i=s(()=>t.value<e),n=s(()=>t.value>=e);return{isMobile:i,isDesktop:n}};export{c as u};

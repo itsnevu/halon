@@ -1,6 +1,9 @@
 import { createConfig } from "@ponder/core";
 import { http } from "viem";
 
+import PolicyPoolAbi from "./abis/PolicyPool.json" with { type: "json" };
+import ClaimsAdjudicatorAbi from "./abis/ClaimsAdjudicator.json" with { type: "json" };
+
 export default createConfig({
   networks: {
     baseSepolia: {
@@ -11,13 +14,13 @@ export default createConfig({
   contracts: {
     PolicyPool: {
       network: "baseSepolia",
-      abi: "./abis/PolicyPool.json", // Reference to the compiled ABI
+      abi: PolicyPoolAbi,
       address: "0xMockAddressForPolicyPool",
       startBlock: 10000000,
     },
     ClaimsAdjudicator: {
       network: "baseSepolia",
-      abi: "./abis/ClaimsAdjudicator.json",
+      abi: ClaimsAdjudicatorAbi,
       address: "0xMockAddressForClaimsAdjudicator",
       startBlock: 10000000,
     },

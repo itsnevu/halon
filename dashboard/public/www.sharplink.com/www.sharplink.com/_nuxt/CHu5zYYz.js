@@ -1,0 +1,1 @@
+import{R as c,s as u,aA as i,aq as f}from"./C167zuj8.js";const p=(o,t)=>{const{once:a}={once:!1,...t},e=c(!1);let n=function(){};return u(()=>{const{stop:s}=i(o,([{isIntersecting:r}])=>{e.value=r,a&&e.value&&s()});n=s}),f(()=>n()),{inView:e,stop:n}};export{p as u};
