@@ -1,7 +1,7 @@
 "use client";
 
-import Lottie from "lottie-react";
-import { useEffect, useState } from "react";
+import lottie, { type AnimationItem } from "lottie-web";
+import { useEffect, useRef } from "react";
 
 interface LottiePlayerProps {
   animationPath: string;
@@ -9,26 +9,40 @@ interface LottiePlayerProps {
   loop?: boolean;
 }
 
+/**
+ * Plays a Lottie straight through lottie-web rather than the react wrapper.
+ *
+ * `stack.json` is an 85-frame image sequence (one image layer per frame), not a
+ * keyframed vector animation. That flavour only advances cleanly on the canvas
+ * renderer with `clearCanvas` on — otherwise every frame paints over the last and
+ * the whole stack reads as one frozen, overlapping mess. Letting lottie-web load
+ * the path itself also preloads the embedded images before it starts, so the first
+ * loop isn't dropped.
+ */
 export default function LottiePlayer({ animationPath, className, loop = true }: LottiePlayerProps) {
-  const [animationData, setAnimationData] = useState<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch(animationPath)
-      .then((response) => response.json())
-      .then((data) => setAnimationData(data))
-      .catch((error) => console.error("Error loading lottie file:", error));
-  }, [animationPath]);
+    const container = containerRef.current;
+    if (!container) return;
 
-  if (!animationData) return <div className={className} />;
+    let anim: AnimationItem | null = lottie.loadAnimation({
+      container,
+      renderer: "canvas",
+      loop,
+      autoplay: true,
+      path: animationPath,
+      rendererSettings: {
+        preserveAspectRatio: "xMidYMid slice",
+        clearCanvas: true,
+      },
+    });
 
-  return (
-    <div className={className}>
-      <Lottie 
-        animationData={animationData} 
-        loop={loop} 
-        {...({ renderer: "canvas" } as any)}
-        rendererSettings={{ preserveAspectRatio: 'xMidYMid slice' }}
-      />
-    </div>
-  );
+    return () => {
+      anim?.destroy();
+      anim = null;
+    };
+  }, [animationPath, loop]);
+
+  return <div ref={containerRef} className={className} />;
 }
