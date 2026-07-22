@@ -11,7 +11,7 @@ import { ClaimsFeed } from "@/components/claims-feed";
 import { DischargeSequence } from "@/components/discharge-sequence";
 import { TrustModel } from "@/components/trust-model";
 import { CtaBand, SiteFooter } from "@/components/cta-footer";
-import Link from "next/link";
+import { LIME, SPRING, MINT } from "@/lib/brand";
 
 export default function Page() {
   return (
@@ -55,14 +55,30 @@ export default function Page() {
                 loop
                 playsInline
                 aria-hidden="true"
+                style={{ filter: "hue-rotate(-115deg) saturate(1.15)" }}
               />
-              {/* seat the blue clip into the band's palette without hiding the render */}
+              {/* recolor the clip's remaining blues onto the HALON ramp (hue only) */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 mix-blend-color opacity-70"
+                style={{
+                  background: `linear-gradient(155deg, ${LIME} 0%, ${SPRING} 45%, ${MINT} 100%)`,
+                }}
+              />
+              {/* neon lime glow rising from the base, plus a vignette to seat the card */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 mix-blend-screen"
+                style={{
+                  background: `radial-gradient(120% 80% at 50% 108%, ${LIME}66 0%, ${MINT}22 40%, transparent 68%)`,
+                }}
+              />
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0"
                 style={{
                   background:
-                    "radial-gradient(120% 90% at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 55%)",
+                    "radial-gradient(120% 90% at 50% 100%, rgba(0,0,0,0.5) 0%, transparent 55%)",
                 }}
               />
             </div>
