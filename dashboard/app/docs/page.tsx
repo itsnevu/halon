@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { HalonWordmark } from "@/components/ui/logo";
+import { HalonMark } from "@/components/ui/logo";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 
@@ -52,11 +52,7 @@ export default function DocsPage() {
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 h-16 border-b border-[#222222] bg-[#0F0F0F]">
         <div className="flex items-center gap-3">
           <Link href="/" className="hover:opacity-80 transition-opacity flex items-center gap-2">
-            {/* Mock Unicorn-style logo for HALON Devs */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c8e63c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 22h20L12 2z"></path>
-              <circle cx="12" cy="14" r="3" fill="#c8e63c"></circle>
-            </svg>
+            <HalonMark eager className="h-6 w-auto" />
             <span className="text-white font-medium text-lg tracking-tight">Developers</span>
           </Link>
         </div>
