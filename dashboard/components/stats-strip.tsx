@@ -1,9 +1,10 @@
 /**
  * StatsStrip — the metrics rail under the ticker.
  *
- * Stays a Server Component: `CountUp` takes a serializable `preset` string
- * rather than a `format` function, so nothing has to cross the RSC boundary
- * that React refuses to serialize.
+ * A Client Component: it reads the protocol headline numbers live from the
+ * PolicyPool via `useProtocolStats` when a deployment is wired in
+ * (NEXT_PUBLIC_POLICY_POOL), and falls back to the `lib/data.ts` fixture
+ * otherwise — labelling itself LIVE or DEMO so the numbers are never dishonest.
  *
  * ── Hairline grid ────────────────────────────────────────────────────────
  * Every cell carries `border-t border-l` and the grid is shifted `-mt-px -ml-px`.
@@ -14,17 +15,17 @@
  * at any of the three column counts (2 / 3 / 6 — all of which divide 6 evenly).
  */
 
+"use client";
+
 import type { ReactNode } from "react";
-import { PROTOCOL_STATS, POOL_B } from "@/lib/data";
+import { POOL_B } from "@/lib/data";
 import { pct, secondsLabel } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { LIME } from "@/lib/brand";
 import { CountUp } from "@/components/ui/count-up";
 import { Reveal } from "@/components/ui/reveal";
 import { Sparkline } from "@/components/ui/sparkline";
-
-/** Fraction of a cell's bar to fill — clamped so a >100% loss ratio can't overflow. */
-const lossBarWidth = pct(Math.min(1, Math.max(0, PROTOCOL_STATS.lossRatio)), 1);
+import { useProtocolStats } from "@/components/use-protocol-stats";
 
 function Cell({
   label,
@@ -71,12 +72,34 @@ function Dot() {
 }
 
 export function StatsStrip() {
+  const { stats, live } = useProtocolStats();
+  /** Fraction of a cell's bar to fill — clamped so a >100% loss ratio can't overflow. */
+  const lossBarWidth = pct(Math.min(1, Math.max(0, stats.lossRatio)), 1);
+
   return (
     <section
       aria-label="Protocol metrics"
       className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20"
     >
       <Reveal>
+        <div className="mb-4 flex justify-end">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[0.625rem] uppercase tracking-[0.16em]",
+              live
+                ? "border-lime/30 bg-lime/10 text-lime"
+                : "border-line bg-surface-2 text-mist-dim",
+            )}
+            title={
+              live
+                ? "Read live from the PolicyPool contract"
+                : "Illustrative fixture — set NEXT_PUBLIC_POLICY_POOL to go live"
+            }
+          >
+            <span className={cn("size-1.5 rounded-full", live ? "bg-lime" : "bg-mist-dim")} />
+            {live ? "Live · on-chain" : "Demo data"}
+          </span>
+        </div>
         <div className="panel overflow-hidden">
           <dl className="-mt-px -ml-px grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
             <Cell
@@ -93,26 +116,26 @@ export function StatsStrip() {
                 />
               }
             >
-              <CountUp value={PROTOCOL_STATS.tvlUsd} preset="usdCompact" />
+              <CountUp value={stats.tvlUsd} preset="usdCompact" />
             </Cell>
 
             <Cell label="Cover in force">
-              <CountUp value={PROTOCOL_STATS.coverageInForceUsd} preset="usdCompact" />
+              <CountUp value={stats.coverageInForceUsd} preset="usdCompact" />
             </Cell>
 
             <Cell label="Active policies">
-              <CountUp value={PROTOCOL_STATS.activePolicies} preset="int" />
+              <CountUp value={stats.activePolicies} preset="int" />
             </Cell>
 
             <Cell label="Discharged to clients" danger>
-              <CountUp value={PROTOCOL_STATS.claimsPaidUsd} preset="usdCompact" />
+              <CountUp value={stats.claimsPaidUsd} preset="usdCompact" />
             </Cell>
 
             <Cell
               label="Median discharge"
               sub={<SubLine>order_rejected → USDC landed</SubLine>}
             >
-              {secondsLabel(PROTOCOL_STATS.medianDischargeSeconds)}
+              {secondsLabel(stats.medianDischargeSeconds)}
             </Cell>
 
             <Cell
@@ -131,16 +154,16 @@ export function StatsStrip() {
                 </>
               }
             >
-              {pct(PROTOCOL_STATS.lossRatio, 1)}
+              {pct(stats.lossRatio, 1)}
             </Cell>
           </dl>
         </div>
       </Reveal>
 
       <p className="mt-6 text-center font-mono text-[0.6875rem] text-mist-dim">
-        <span className="tabular">{PROTOCOL_STATS.uniqueBuyers}</span> unique buyer wallets
+        <span className="tabular">{stats.uniqueBuyers}</span> unique buyer wallets
         <Dot />
-        <span className="tabular">{PROTOCOL_STATS.agentsInsured}</span> agents insured
+        <span className="tabular">{stats.agentsInsured}</span> agents insured
         <Dot />
         <span className="tabular">3</span> counterparties
       </p>
