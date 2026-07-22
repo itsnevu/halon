@@ -16,7 +16,7 @@ import LottiePlayer from "@/components/ui/lottie-player";
 import artMeshRibbon from "@/public/art-mesh-ribbon.png";
 import { Reveal } from "@/components/ui/reveal";
 import { Sparkline } from "@/components/ui/sparkline";
-import { DANGER, LIME } from "@/lib/brand";
+import { DANGER, LIME, SPRING, MINT } from "@/lib/brand";
 
 const ROLE_TONE: Record<AgentRole, Tone> = {
   client: "neutral",
@@ -374,6 +374,36 @@ export function AgentRegistry() {
       art={
         <div className="absolute inset-x-0 -top-48 -z-10 h-[760px] flex justify-center opacity-40 mix-blend-screen pointer-events-none">
           <LottiePlayer animationPath="/lottie/opportunities.json" className="w-[1000px] h-[1000px]" />
+        </div>
+      }
+      actions={
+        <div className="relative hidden aspect-[4/3] w-[320px] shrink-0 overflow-hidden rounded-2xl border border-line bg-black neu neu-raise lg:block">
+          <video
+            className="size-full object-cover"
+            src="/video/eth-forge.webm"
+            poster="/video/eth-forge-poster.jpg"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden="true"
+            style={{ filter: "hue-rotate(-115deg) saturate(1.15)" }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 mix-blend-color opacity-70"
+            style={{ background: `linear-gradient(155deg, ${LIME} 0%, ${SPRING} 45%, ${MINT} 100%)` }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 mix-blend-screen"
+            style={{ background: `radial-gradient(120% 80% at 50% 108%, ${LIME}66 0%, ${MINT}22 40%, transparent 68%)` }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{ background: "radial-gradient(120% 90% at 50% 100%, rgba(0,0,0,0.5) 0%, transparent 55%)" }}
+          />
         </div>
       }
       eyebrow="Reliability index"

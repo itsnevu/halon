@@ -15,16 +15,16 @@ export default function DocsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-[#BDBDBD] font-sans overflow-x-hidden selection:bg-[#FC0F9F]/30">
+    <div className="min-h-screen bg-[#0F0F0F] text-[#BDBDBD] font-sans overflow-x-hidden selection:bg-[#c8e63c]/30">
       
       {/* DEVELOPER HEADER */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 h-16 border-b border-[#222222] bg-[#0F0F0F]">
         <div className="flex items-center gap-3">
           <Link href="/" className="hover:opacity-80 transition-opacity flex items-center gap-2">
             {/* Mock Unicorn-style logo for HALON Devs */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FC0F9F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c8e63c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2L2 22h20L12 2z"></path>
-              <circle cx="12" cy="14" r="3" fill="#FC0F9F"></circle>
+              <circle cx="12" cy="14" r="3" fill="#c8e63c"></circle>
             </svg>
             <span className="text-white font-medium text-lg tracking-tight">Developers</span>
           </Link>
@@ -43,7 +43,7 @@ export default function DocsPage() {
           <button className="text-mist hover:text-white transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
           </button>
-          <button className="bg-[#FC0F9F] text-white font-semibold text-sm px-4 py-1.5 rounded-full hover:bg-[#FC0F9F]/90 transition-colors">
+          <button className="bg-[#c8e63c] text-[#0F0F0F] font-semibold text-sm px-4 py-1.5 rounded-full hover:bg-[#c8e63c]/90 transition-colors">
             API keys
           </button>
         </div>
@@ -62,7 +62,7 @@ export default function DocsPage() {
             <input 
               type="text" 
               placeholder="Search" 
-              className="w-full bg-[#1A1A1A] border border-[#2B2B2B] text-white text-sm rounded-lg pl-9 pr-8 py-2 outline-none focus:border-[#FC0F9F]/50 transition-colors"
+              className="w-full bg-[#1A1A1A] border border-[#2B2B2B] text-white text-sm rounded-lg pl-9 pr-8 py-2 outline-none focus:border-[#c8e63c]/50 transition-colors"
             />
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-[#555]">
               /
@@ -142,10 +142,10 @@ export default function DocsPage() {
                   Integrate swaps, manage liquidity, launch tokens and more with AI-friendly DeFi tooling.
                 </p>
                 <div className="flex gap-4">
-                  <button className="bg-[#FC0F9F] text-white font-medium px-6 py-3 rounded-full hover:bg-[#FC0F9F]/90 transition-colors">
+                  <button className="bg-[#c8e63c] text-[#0F0F0F] font-medium px-6 py-3 rounded-full hover:bg-[#c8e63c]/90 transition-colors">
                     Quick start
                   </button>
-                  <button className="bg-[#FC0F9F]/10 text-[#FC0F9F] font-medium px-6 py-3 rounded-full hover:bg-[#FC0F9F]/20 transition-colors">
+                  <button className="bg-[#c8e63c]/10 text-[#c8e63c] font-medium px-6 py-3 rounded-full hover:bg-[#c8e63c]/20 transition-colors">
                     Agent skills
                   </button>
                 </div>
@@ -181,23 +181,23 @@ export default function DocsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Guide Card 1 */}
-                <div className="bg-[#24151E] border border-[#3A1E2E] rounded-2xl p-8 hover:border-[#FC0F9F]/50 transition-colors cursor-pointer group">
+                <div className="bg-[#151E12] border border-[#26361B] rounded-2xl p-8 hover:border-[#c8e63c]/50 transition-colors cursor-pointer group">
                   <div className="flex items-center gap-4 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-[#FC0F9F]/20 flex items-center justify-center text-[#FC0F9F]">
+                    <div className="w-10 h-10 rounded-full bg-[#c8e63c]/20 flex items-center justify-center text-[#c8e63c]">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline></svg>
                     </div>
-                    <h3 className="text-xl text-white font-medium group-hover:text-[#FC0F9F] transition-colors">Swap tokens</h3>
+                    <h3 className="text-xl text-white font-medium group-hover:text-[#c8e63c] transition-colors">Swap tokens</h3>
                   </div>
                   <p className="text-[#999] ml-14">Add swaps to your app</p>
                 </div>
 
                 {/* Guide Card 2 */}
-                <div className="bg-[#121A2A] border border-[#1E2D4A] rounded-2xl p-8 hover:border-[#3B82F6]/50 transition-colors cursor-pointer group">
+                <div className="bg-[#0F1E1A] border border-[#1E3A32] rounded-2xl p-8 hover:border-[#61e7c3]/50 transition-colors cursor-pointer group">
                   <div className="flex items-center gap-4 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-[#3B82F6]/20 flex items-center justify-center text-[#3B82F6]">
+                    <div className="w-10 h-10 rounded-full bg-[#61e7c3]/20 flex items-center justify-center text-[#61e7c3]">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg>
                     </div>
-                    <h3 className="text-xl text-white font-medium group-hover:text-[#3B82F6] transition-colors">Manage liquidity</h3>
+                    <h3 className="text-xl text-white font-medium group-hover:text-[#61e7c3] transition-colors">Manage liquidity</h3>
                   </div>
                   <p className="text-[#999] ml-14">Earn fees programmatically</p>
                 </div>
