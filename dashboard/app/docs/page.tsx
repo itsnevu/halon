@@ -3,280 +3,566 @@
 import Link from "next/link";
 import { HalonMark } from "@/components/ui/logo";
 import { useState } from "react";
-import { cn } from "@/lib/cn";
+
+/* ── data ─────────────────────────────────────────────────────── */
+
+const NAV_GROUPS = [
+  {
+    title: "Get Started",
+    items: [
+      { label: "Quick Start", href: "#quick-start" },
+      { label: "Concepts", href: "#concepts" },
+    ],
+  },
+  {
+    title: "Trade",
+    items: [
+      { label: "Trading Overview", href: "#trading" },
+      { label: "Swapping", href: "#swapping" },
+      { label: "Custom Linking", href: "#linking" },
+    ],
+  },
+  {
+    title: "Liquidity",
+    items: [
+      { label: "Liquidity Overview", href: "#liquidity" },
+      { label: "Liquidity Provisioning", href: "#provisioning" },
+      { label: "Liquidity Launchpad", href: "#launchpad" },
+      { label: "HalonX", href: "#halonx" },
+    ],
+  },
+  {
+    title: "Reference",
+    items: [{ label: "SDK Reference", href: "#sdk" }],
+  },
+] as const;
+
+const CONCEPTS = [
+  {
+    title: "Coverage binding",
+    body: "A client buys cover from an underwriter before hiring a worker agent. Premium lands in the PolicyPool inside the same pay-tx — atomically, not as a follow-up transfer.",
+  },
+  {
+    title: "Discharge cascade",
+    body: "When a worker misses its deadline, the pool discharges to the client automatically and the underwriter's own reinsurance cascades in behind it. Nobody pulls the trigger.",
+  },
+  {
+    title: "Reliability index",
+    body: "Every score is derived from on-chain order history — completed against rejected and expired. It is the only input the pricing model needs, and anyone can recompute it.",
+  },
+  {
+    title: "Capital & yield",
+    body: "Underwriters deposit into a PolicyPool, earn premiums on the cover they write, and withdraw their share on demand. All collateral is tokenized on Base.",
+  },
+];
+
+const SDK_REFERENCE = [
+  {
+    name: "getPremium",
+    signature: "getPremium(request)",
+    desc: "Quote the premium for a coverage request before you bind. Pricing is a pure function of the worker's reliability index.",
+    params: [
+      { name: "request.worker", type: "Address", desc: "Worker agent being covered." },
+      { name: "request.coverage", type: "string", desc: "Payout size, e.g. \"5000_USDC\"." },
+      { name: "request.deadline", type: "number", desc: "SLA window in seconds." },
+    ],
+    returns: "Quote — { id, premium, expiry }",
+    example: `const quote = await halon.getPremium({
+  worker: "0xAgent…",
+  coverage: "5000_USDC",
+  deadline: 3600,
+});`,
+  },
+  {
+    name: "bindDirect",
+    signature: "bindDirect(params)",
+    desc: "Bind cover directly to a worker agent without a separate quote step. Use when you already trust the on-chain price.",
+    params: [
+      { name: "params.worker", type: "Address", desc: "Worker agent being covered." },
+      { name: "params.coverage", type: "string", desc: "Payout size." },
+      { name: "params.deadline", type: "number", desc: "SLA window in seconds." },
+    ],
+    returns: "Policy — { id, status }",
+    example: `const policy = await halon.bindDirect({
+  worker: "0xAgent…",
+  coverage: "5000_USDC",
+  deadline: 3600,
+});`,
+  },
+  {
+    name: "bindWithPremium",
+    signature: "bindWithPremium(params)",
+    desc: "Quote, bind, and pay the premium in a single transaction. The premium settles into the PolicyPool atomically.",
+    params: [{ name: "params.quoteId", type: "string", desc: "Id returned by getPremium." }],
+    returns: "Policy — { id, status, txHash }",
+    example: `const policy = await halon.bindWithPremium({
+  quoteId: quote.id,
+});`,
+  },
+  {
+    name: "verifySLA",
+    signature: "verifySLA(orderId)",
+    desc: "Read a worker agent's SLA outcome from on-chain order history — completed against rejected and expired.",
+    params: [{ name: "orderId", type: "string", desc: "Order to check." }],
+    returns: "SLAResult — { met, completed, rejected, expired }",
+    example: `const sla = await halon.verifySLA("order_123");
+if (!sla.met) {
+  await halon.adjudicateClaim({ orderId: "order_123" });
+}`,
+  },
+  {
+    name: "adjudicateClaim",
+    signature: "adjudicateClaim(params)",
+    desc: "Resolve a claim against on-chain SLA proof. No custodian and no human in the loop — the pool discharges on a valid proof.",
+    params: [
+      { name: "params.orderId", type: "string", desc: "Order the claim is against." },
+      { name: "params.proof", type: "bytes?", desc: "Optional SLA proof; derived on-chain if omitted." },
+    ],
+    returns: "Claim — { id, payout, status }",
+    example: `const claim = await halon.adjudicateClaim({
+  orderId: "order_123",
+});`,
+  },
+  {
+    name: "executeBridge",
+    signature: "executeBridge(policyId)",
+    desc: "Cascade capital down the reinsurance layers. Called automatically on discharge; exposed for manual settlement.",
+    params: [{ name: "policyId", type: "string", desc: "Policy whose reinsurance should cascade." }],
+    returns: "BridgeReceipt — { layers, total }",
+    example: `await halon.executeBridge(policy.id);`,
+  },
+  {
+    name: "depositCapital",
+    signature: "depositCapital(params)",
+    desc: "Provide liquidity to a PolicyPool as an underwriter and start earning premiums on the cover it writes.",
+    params: [
+      { name: "params.pool", type: "Address", desc: "Target PolicyPool." },
+      { name: "params.amount", type: "string", desc: "Deposit size, e.g. \"10000_USDC\"." },
+    ],
+    returns: "Position — { shares, poolId }",
+    example: `const pos = await halon.depositCapital({
+  pool: "0xPool…",
+  amount: "10000_USDC",
+});`,
+  },
+  {
+    name: "withdrawCapital",
+    signature: "withdrawCapital(params)",
+    desc: "Redeem your share of pool capital and accrued premiums. Subject to cover currently in force.",
+    params: [
+      { name: "params.pool", type: "Address", desc: "PolicyPool to withdraw from." },
+      { name: "params.shares", type: "string", desc: "Share amount to redeem." },
+    ],
+    returns: "Withdrawal — { amount, txHash }",
+    example: `await halon.withdrawCapital({
+  pool: "0xPool…",
+  shares: pos.shares,
+});`,
+  },
+  {
+    name: "claimYield",
+    signature: "claimYield(pool)",
+    desc: "Collect the premiums your provided cover has earned, without unwinding your capital position.",
+    params: [{ name: "pool", type: "Address", desc: "PolicyPool to claim from." }],
+    returns: "Yield — { claimed, txHash }",
+    example: `const y = await halon.claimYield("0xPool…");`,
+  },
+];
+
+/* ── reusable code block with copy ────────────────────────────── */
+
+function CodeBlock({ code, lang = "typescript" }: { code: string; lang?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="relative my-4 overflow-hidden rounded-xl border border-[#2B2B2B] bg-[#111111]">
+      <div className="flex items-center justify-between border-b border-[#222222] bg-[#161616] px-4 py-2">
+        <span className="font-mono text-[0.7rem] uppercase tracking-wider text-[#777]">{lang}</span>
+        <button
+          onClick={copy}
+          className="font-mono text-[0.7rem] text-[#777] transition-colors hover:text-[#c8e63c]"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <pre className="overflow-x-auto p-4 font-mono text-[0.8rem] leading-relaxed text-[#d4d4d4]">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
+function SectionHeading({ id, kicker, title }: { id: string; kicker?: string; title: string }) {
+  return (
+    <div className="mb-6 scroll-mt-24" id={id}>
+      {kicker && (
+        <div className="mb-2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-[#c8e63c]">
+          {kicker}
+        </div>
+      )}
+      <h2 className="text-2xl font-medium text-white md:text-3xl">{title}</h2>
+    </div>
+  );
+}
+
+/* ── page ─────────────────────────────────────────────────────── */
 
 export default function DocsPage() {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText("npx skills add halon-ai --skill swap-protection");
+    navigator.clipboard.writeText("npx skills add halon/halon-ai --skill swap-protection");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const SDK_REFERENCE = [
-    { name: "getPremium", desc: "Quote the premium for a coverage request before you bind." },
-    { name: "bindDirect", desc: "Bind cover directly to a worker agent — no premium quote step." },
-    { name: "bindWithPremium", desc: "Quote, bind, and pay the premium in a single transaction." },
-    { name: "verifySLA", desc: "Read a worker agent's SLA outcome from on-chain order history." },
-    { name: "adjudicateClaim", desc: "Resolve a claim against on-chain SLA proof, no custodian." },
-    { name: "executeBridge", desc: "Cascade capital down the reinsurance layers automatically." },
-    { name: "depositCapital", desc: "Provide liquidity to a PolicyPool as an underwriter." },
-    { name: "withdrawCapital", desc: "Redeem your share of pool capital and accrued premiums." },
-    { name: "claimYield", desc: "Collect the premiums your provided cover has earned." },
-  ];
-
-  const CONCEPTS = [
-    {
-      title: "Coverage binding",
-      body: "A client buys cover from an underwriter before hiring a worker agent. Premium lands in the PolicyPool inside the same pay-tx — atomically, not as a follow-up transfer.",
-    },
-    {
-      title: "Discharge cascade",
-      body: "When a worker misses its deadline, the pool discharges to the client automatically and the underwriter's own reinsurance cascades in behind it. Nobody pulls the trigger.",
-    },
-    {
-      title: "Reliability index",
-      body: "Every score is derived from on-chain order history — completed against rejected and expired. It is the only input the pricing model needs, and anyone can recompute it.",
-    },
-    {
-      title: "Capital & yield",
-      body: "Underwriters deposit into a PolicyPool, earn premiums on the cover they write, and withdraw their share on demand. All collateral is tokenized on Base.",
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-[#BDBDBD] font-sans overflow-x-hidden selection:bg-[#c8e63c]/30">
-      
+    <div className="min-h-screen bg-[#0F0F0F] font-sans text-[#BDBDBD] overflow-x-hidden selection:bg-[#c8e63c]/30">
       {/* DEVELOPER HEADER */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 h-16 border-b border-[#222222] bg-[#0F0F0F]">
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-[#222222] bg-[#0F0F0F] px-6">
         <div className="flex items-center gap-3">
-          <Link href="/" className="hover:opacity-80 transition-opacity flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <HalonMark eager className="h-6 w-auto" />
-            <span className="text-white font-medium text-lg tracking-tight">Developers</span>
+            <span className="text-lg font-medium tracking-tight text-white">Developers</span>
           </Link>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2 text-sm font-medium">
-          <Link href="/docs" className="text-white">Docs</Link>
-          <Link href="/docs" className="hover:text-white transition-colors">API Reference</Link>
-          <button className="hover:text-white transition-colors flex items-center gap-1">
-            Resources
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-sm font-medium md:flex">
+          <a href="#top" className="text-white">Docs</a>
+          <a href="#sdk" className="transition-colors hover:text-white">API Reference</a>
+          <a href="#concepts" className="transition-colors hover:text-white">Resources</a>
         </nav>
 
         <div className="flex items-center gap-4">
-          <button className="text-mist hover:text-white transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-          </button>
-          <button className="bg-[#c8e63c] text-[#0F0F0F] font-semibold text-sm px-4 py-1.5 rounded-full hover:bg-[#c8e63c]/90 transition-colors">
+          <Link href="/" className="text-[#999] transition-colors hover:text-white text-sm">
+            Dashboard
+          </Link>
+          <button className="rounded-full bg-[#c8e63c] px-4 py-1.5 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90">
             API keys
           </button>
         </div>
       </header>
 
       {/* MAIN LAYOUT */}
-      <div className="flex max-w-[1440px] mx-auto w-full relative">
-        
+      <div className="relative mx-auto flex w-full max-w-[1440px]">
         {/* SIDEBAR */}
-        <aside className="w-[280px] shrink-0 border-r border-[#222222] min-h-[calc(100vh-4rem)] p-6 hidden lg:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto custom-scrollbar">
-          
+        <aside className="custom-scrollbar sticky top-16 hidden h-[calc(100vh-4rem)] w-[280px] shrink-0 overflow-y-auto border-r border-[#222222] p-6 lg:block">
           <div className="relative mb-8">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             </div>
-            <input 
-              type="text" 
-              placeholder="Search" 
-              className="w-full bg-[#1A1A1A] border border-[#2B2B2B] text-white text-sm rounded-lg pl-9 pr-8 py-2 outline-none focus:border-[#c8e63c]/50 transition-colors"
+            <input
+              type="text"
+              placeholder="Search"
+              className="w-full rounded-lg border border-[#2B2B2B] bg-[#1A1A1A] py-2 pl-9 pr-8 text-sm text-white outline-none transition-colors focus:border-[#c8e63c]/50"
             />
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-[#555]">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#555]">
               /
             </div>
           </div>
 
-          <div className="space-y-8">
-            <div>
-              <h3 className="text-white font-bold text-sm mb-3">Get Started</h3>
-              <ul className="space-y-2 text-sm text-[#999]">
-                <li><Link href="#" className="text-white block">Quick Start</Link></li>
-                <li>
-                  <button className="flex items-center justify-between w-full hover:text-white transition-colors">
-                    Concepts
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-white font-bold text-sm mb-3">Trade</h3>
-              <ul className="space-y-3 text-sm text-[#999]">
-                <li><Link href="#" className="hover:text-white transition-colors block">Trading Overview</Link></li>
-                <li>
-                  <button className="flex items-center justify-between w-full hover:text-white transition-colors">
-                    Swapping
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                  </button>
-                </li>
-                <li><Link href="#" className="hover:text-white transition-colors block">Custom Linking</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-white font-bold text-sm mb-3">Liquidity</h3>
-              <ul className="space-y-3 text-sm text-[#999]">
-                <li><Link href="#" className="hover:text-white transition-colors block">Liquidity Overview</Link></li>
-                <li>
-                  <button className="flex items-center justify-between w-full hover:text-white transition-colors">
-                    Liquidity Provisioning
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                  </button>
-                </li>
-                <li>
-                  <button className="flex items-center justify-between w-full hover:text-white transition-colors">
-                    Liquidity Launchpad
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                  </button>
-                </li>
-                <li>
-                  <button className="flex items-center justify-between w-full hover:text-white transition-colors">
-                    HalonX
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </div>
+          <nav className="space-y-8">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.title}>
+                <h3 className="mb-3 text-sm font-bold text-white">{group.title}</h3>
+                <ul className="space-y-2.5 text-sm text-[#999]">
+                  {group.items.map((item) => (
+                    <li key={item.href}>
+                      <a href={item.href} className="block transition-colors hover:text-[#c8e63c]">
+                        {item.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
         </aside>
 
         {/* MAIN CONTENT */}
-        <main className="flex-1 min-w-0 p-8 md:p-12 lg:p-16 relative">
-          
-          {/* Subtle grid background matching Uniswap Dev portal */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
+        <main className="relative min-w-0 flex-1 p-8 md:p-12 lg:p-16">
+          {/* Subtle grid background */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage:
+                "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
+              backgroundSize: "32px 32px",
+            }}
+          />
 
-          <div className="max-w-4xl mx-auto relative z-10">
-            
-            <div className="flex flex-col xl:flex-row gap-12 items-start justify-between mb-24">
-              
+          <div className="relative z-10 mx-auto max-w-4xl scroll-mt-24" id="top">
+            {/* HERO */}
+            <div className="mb-24 flex flex-col items-start justify-between gap-12 xl:flex-row">
               <div className="flex-1">
-                <h1 className="text-5xl md:text-6xl font-medium text-white tracking-tight mb-6 leading-[1.1]">
-                  HALON<br/>Documentation
+                <h1 className="mb-6 text-5xl font-medium leading-[1.1] tracking-tight text-white md:text-6xl">
+                  HALON<br />Documentation
                 </h1>
-                <p className="text-lg text-[#999] mb-8 max-w-md">
-                  Integrate swaps, manage liquidity, launch tokens and more with AI-friendly DeFi tooling.
+                <p className="mb-8 max-w-md text-lg text-[#999]">
+                  Integrate coverage, cascade reinsurance, and provide liquidity with AI-friendly,
+                  on-chain tooling on Base.
                 </p>
                 <div className="flex gap-4">
-                  <button className="bg-[#c8e63c] text-[#0F0F0F] font-medium px-6 py-3 rounded-full hover:bg-[#c8e63c]/90 transition-colors">
+                  <a
+                    href="#quick-start"
+                    className="rounded-full bg-[#c8e63c] px-6 py-3 font-medium text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90"
+                  >
                     Quick start
-                  </button>
-                  <button className="bg-[#c8e63c]/10 text-[#c8e63c] font-medium px-6 py-3 rounded-full hover:bg-[#c8e63c]/20 transition-colors">
-                    Agent skills
-                  </button>
+                  </a>
+                  <a
+                    href="#sdk"
+                    className="rounded-full bg-[#c8e63c]/10 px-6 py-3 font-medium text-[#c8e63c] transition-colors hover:bg-[#c8e63c]/20"
+                  >
+                    SDK reference
+                  </a>
                 </div>
               </div>
 
-              {/* QUICK START CODE BLOCK WIDGET */}
-              <div className="w-full xl:w-[480px] bg-[#111111] border border-[#2B2B2B] rounded-2xl overflow-hidden shadow-2xl shrink-0">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-[#2B2B2B] bg-[#161616]">
-                  <span className="text-white text-sm font-medium">Quick Start</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[#999] text-xs flex items-center gap-1 cursor-pointer hover:text-white transition-colors">
-                      Agent skills <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-                    </span>
-                    <button onClick={handleCopy} className="text-[#999] hover:text-white transition-colors">
-                      {copied ? (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#CDFF71" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                      )}
-                    </button>
-                  </div>
+              {/* QUICK START WIDGET */}
+              <div className="w-full shrink-0 overflow-hidden rounded-2xl border border-[#2B2B2B] bg-[#111111] shadow-2xl xl:w-[480px]">
+                <div className="flex items-center justify-between border-b border-[#2B2B2B] bg-[#161616] px-4 py-3">
+                  <span className="text-sm font-medium text-white">Quick Start</span>
+                  <button onClick={handleCopy} className="text-[#999] transition-colors hover:text-white">
+                    {copied ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c8e63c" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    )}
+                  </button>
                 </div>
-                <div className="p-6 overflow-x-auto font-mono text-sm leading-relaxed">
-                  <span className="text-[#999]">npx</span> <span className="text-[#A78BFA]">skills</span> <span className="text-[#60A5FA]">add</span> <span className="text-white">halon/halon-ai --skill swap-protection</span>
+                <div className="overflow-x-auto p-6 font-mono text-sm leading-relaxed">
+                  <span className="text-[#999]">npx</span> <span className="text-[#A78BFA]">skills</span>{" "}
+                  <span className="text-[#60A5FA]">add</span>{" "}
+                  <span className="text-white">halon/halon-ai --skill swap-protection</span>
                 </div>
               </div>
-
             </div>
 
-            {/* GUIDES SECTION */}
-            <div className="mb-16">
-              <h2 className="text-2xl font-medium text-white mb-6">Guides</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Guide Card 1 */}
-                <div className="bg-[#151E12] border border-[#26361B] rounded-2xl p-8 hover:border-[#c8e63c]/50 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-4 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-[#c8e63c]/20 flex items-center justify-center text-[#c8e63c]">
+            {/* GUIDES */}
+            <div className="mb-20">
+              <h2 className="mb-6 text-2xl font-medium text-white">Guides</h2>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <a href="#swapping" className="group cursor-pointer rounded-2xl border border-[#26361B] bg-[#151E12] p-8 transition-colors hover:border-[#c8e63c]/50">
+                  <div className="mb-2 flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#c8e63c]/20 text-[#c8e63c]">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline></svg>
                     </div>
-                    <h3 className="text-xl text-white font-medium group-hover:text-[#c8e63c] transition-colors">Swap tokens</h3>
+                    <h3 className="text-xl font-medium text-white transition-colors group-hover:text-[#c8e63c]">Bind cover</h3>
                   </div>
-                  <p className="text-[#999] ml-14">Add swaps to your app</p>
-                </div>
+                  <p className="ml-14 text-[#999]">Insure a worker agent in one call</p>
+                </a>
 
-                {/* Guide Card 2 */}
-                <div className="bg-[#0F1E1A] border border-[#1E3A32] rounded-2xl p-8 hover:border-[#61e7c3]/50 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-4 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-[#61e7c3]/20 flex items-center justify-center text-[#61e7c3]">
+                <a href="#liquidity" className="group cursor-pointer rounded-2xl border border-[#1E3A32] bg-[#0F1E1A] p-8 transition-colors hover:border-[#61e7c3]/50">
+                  <div className="mb-2 flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#61e7c3]/20 text-[#61e7c3]">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg>
                     </div>
-                    <h3 className="text-xl text-white font-medium group-hover:text-[#61e7c3] transition-colors">Manage liquidity</h3>
+                    <h3 className="text-xl font-medium text-white transition-colors group-hover:text-[#61e7c3]">Provide liquidity</h3>
                   </div>
-                  <p className="text-[#999] ml-14">Earn fees programmatically</p>
-                </div>
-
+                  <p className="ml-14 text-[#999]">Underwrite and earn premiums</p>
+                </a>
               </div>
             </div>
 
-            {/* CORE CONCEPTS */}
-            <div className="mb-16">
-              <h2 className="text-2xl font-medium text-white mb-6">Core concepts</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* QUICK START */}
+            <section className="mb-20">
+              <SectionHeading id="quick-start" kicker="Get Started" title="Quick start" />
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`Install the SDK, authenticate with your API key, and bind your first policy. Every call is a thin wrapper over the on-chain Halon Router — no forks, no shims.`}
+              </p>
+
+              <h3 className="mb-1 mt-8 text-lg font-medium text-white">1. Install</h3>
+              <CodeBlock lang="bash" code={`npm install @halon/sdk
+# or wire it straight into an agent
+npx skills add halon/halon-ai --skill swap-protection`} />
+
+              <h3 className="mb-1 mt-8 text-lg font-medium text-white">2. Authenticate</h3>
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`Create a client with your API key. Set HALON_API_KEY in your environment — never hardcode it.`}
+              </p>
+              <CodeBlock code={`import { Halon } from "@halon/sdk";
+
+const halon = new Halon({
+  apiKey: process.env.HALON_API_KEY!,
+  chain: "base",
+});`} />
+
+              <h3 className="mb-1 mt-8 text-lg font-medium text-white">3. Bind your first policy</h3>
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`Quote a premium for a worker agent, then bind and pay in one transaction.`}
+              </p>
+              <CodeBlock code={`const quote = await halon.getPremium({
+  worker: "0xAgent…",
+  coverage: "5000_USDC",
+  deadline: 3600,
+});
+
+const policy = await halon.bindWithPremium({ quoteId: quote.id });
+console.log(policy.status); // "bound"`} />
+            </section>
+
+            {/* CONCEPTS */}
+            <section className="mb-20">
+              <SectionHeading id="concepts" kicker="Get Started" title="Core concepts" />
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {CONCEPTS.map((c) => (
                   <div
                     key={c.title}
-                    className="bg-[#141414] border border-[#222222] rounded-2xl p-6 hover:border-[#c8e63c]/40 transition-colors"
+                    className="rounded-2xl border border-[#222222] bg-[#141414] p-6 transition-colors hover:border-[#c8e63c]/40"
                   >
-                    <h3 className="text-lg text-white font-medium mb-2">{c.title}</h3>
-                    <p className="text-[#999] text-sm leading-relaxed">{c.body}</p>
+                    <h3 className="mb-2 text-lg font-medium text-white">{c.title}</h3>
+                    <p className="text-sm leading-relaxed text-[#999]">{c.body}</p>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
+
+            {/* TRADING */}
+            <section className="mb-20">
+              <SectionHeading id="trading" kicker="Trade" title="Trading overview" />
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`Coverage is priced, bound, and settled entirely on-chain. A client buys cover from an underwriter before hiring a worker; the underwriter immediately cedes part of that risk to a reinsurer. When the worker misses its deadline, capital moves back down the chain automatically.`}
+              </p>
+
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="swapping">Swapping</h3>
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`Bind cover in a single call. bindWithPremium quotes, binds, and settles the premium into the PolicyPool atomically — the premium is part of the pay-tx, not a follow-up transfer.`}
+              </p>
+              <CodeBlock code={`const policy = await halon.bindWithPremium({
+  quoteId: (await halon.getPremium({
+    worker: "0xAgent…",
+    coverage: "5000_USDC",
+    deadline: 3600,
+  })).id,
+});`} />
+
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="linking">Custom linking</h3>
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`Verify a worker's SLA outcome and adjudicate a claim from your own backend. verifySLA reads on-chain order history; a failed SLA lets you file a claim that the pool discharges without a custodian.`}
+              </p>
+              <CodeBlock code={`const sla = await halon.verifySLA("order_123");
+if (!sla.met) {
+  const claim = await halon.adjudicateClaim({ orderId: "order_123" });
+  console.log(claim.payout);
+}`} />
+            </section>
+
+            {/* LIQUIDITY */}
+            <section className="mb-20">
+              <SectionHeading id="liquidity" kicker="Liquidity" title="Liquidity overview" />
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`Underwriters deposit into a PolicyPool, earn premiums on the cover it writes, and withdraw their share on demand. All collateral is tokenized on Base and anyone can audit the pool.`}
+              </p>
+
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="provisioning">Liquidity provisioning</h3>
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`Deposit capital to start underwriting, then claim accrued premiums without unwinding your position.`}
+              </p>
+              <CodeBlock code={`const pos = await halon.depositCapital({
+  pool: "0xPool…",
+  amount: "10000_USDC",
+});
+
+// later — collect earned premiums
+const y = await halon.claimYield("0xPool…");`} />
+
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="launchpad">Liquidity launchpad</h3>
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`Bootstrap a new PolicyPool for a class of worker agents. Set the initial capital and the pool is live for binding immediately.`}
+              </p>
+
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="halonx">HalonX</h3>
+              <p className="max-w-2xl text-[#999] leading-relaxed">
+                {`HalonX exposes the reinsurance layer: cede risk from one pool to another and cascade capital across layers with executeBridge on discharge.`}
+              </p>
+              <CodeBlock code={`await halon.executeBridge(policy.id);`} />
+            </section>
 
             {/* SDK REFERENCE */}
-            <div className="mb-16">
-              <div className="flex items-baseline justify-between mb-6">
-                <h2 className="text-2xl font-medium text-white">SDK reference</h2>
-                <span className="text-[#777] text-sm">Nine methods. No forks, no shims.</span>
+            <section className="mb-20">
+              <div className="mb-6 flex items-baseline justify-between scroll-mt-24" id="sdk">
+                <div>
+                  <div className="mb-2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-[#c8e63c]">
+                    Reference
+                  </div>
+                  <h2 className="text-2xl font-medium text-white md:text-3xl">SDK reference</h2>
+                </div>
+                <span className="hidden text-sm text-[#777] sm:block">Nine methods. No forks, no shims.</span>
               </div>
-              <div className="border border-[#222222] rounded-2xl overflow-hidden divide-y divide-[#1c1c1c]">
+
+              <div className="space-y-4">
                 {SDK_REFERENCE.map((m) => (
                   <div
                     key={m.name}
-                    className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-6 px-6 py-4 hover:bg-[#141414] transition-colors group"
+                    className="scroll-mt-24 overflow-hidden rounded-2xl border border-[#222222] bg-[#111111]"
+                    id={`sdk-${m.name}`}
                   >
-                    <code className="font-mono text-sm text-[#c8e63c] shrink-0 w-56">{m.name}()</code>
-                    <span className="text-[#999] text-sm leading-relaxed">{m.desc}</span>
+                    <div className="border-b border-[#1c1c1c] px-6 py-4">
+                      <code className="font-mono text-sm text-[#c8e63c]">{m.signature}</code>
+                      <p className="mt-2 text-sm leading-relaxed text-[#999]">{m.desc}</p>
+                    </div>
+                    <div className="grid gap-6 px-6 py-5 md:grid-cols-2">
+                      <div>
+                        <div className="mb-2 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[#777]">
+                          Parameters
+                        </div>
+                        <ul className="space-y-2">
+                          {m.params.map((p) => (
+                            <li key={p.name} className="text-sm">
+                              <code className="font-mono text-[#d4d4d4]">{p.name}</code>
+                              <span className="text-[#666]"> · {p.type}</span>
+                              <div className="text-[#999]">{p.desc}</div>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="mb-2 mt-4 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[#777]">
+                          Returns
+                        </div>
+                        <code className="font-mono text-sm text-[#d4d4d4]">{m.returns}</code>
+                      </div>
+                      <div>
+                        <div className="mb-2 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[#777]">
+                          Example
+                        </div>
+                        <pre className="overflow-x-auto rounded-lg border border-[#222222] bg-[#0d0d0d] p-4 font-mono text-[0.75rem] leading-relaxed text-[#d4d4d4]">
+                          <code>{m.example}</code>
+                        </pre>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
 
-            {/* Feedback Float */}
-            <div className="fixed bottom-6 right-6 hidden md:block">
-              <button className="bg-[#1A1A1A] border border-[#2B2B2B] text-[#BDBDBD] hover:text-white px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-lg">
-                Feedback
-              </button>
-            </div>
-
+            {/* NEXT STEPS */}
+            <section className="mb-16 rounded-2xl border border-[#222222] bg-[#141414] p-8">
+              <h2 className="mb-2 text-xl font-medium text-white">Ready to build?</h2>
+              <p className="mb-6 max-w-lg text-sm leading-relaxed text-[#999]">
+                Grab an API key, open the dashboard to watch policies bind and discharge live, or
+                read the protocol overview.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button className="rounded-full bg-[#c8e63c] px-5 py-2.5 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90">
+                  Get API keys
+                </button>
+                <Link href="/" className="rounded-full border border-[#2B2B2B] px-5 py-2.5 text-sm font-medium text-[#BDBDBD] transition-colors hover:text-white">
+                  Open dashboard
+                </Link>
+              </div>
+            </section>
           </div>
         </main>
+      </div>
 
+      {/* Feedback Float */}
+      <div className="fixed bottom-6 right-6 hidden md:block">
+        <button className="rounded-full border border-[#2B2B2B] bg-[#1A1A1A] px-4 py-2 text-sm font-medium text-[#BDBDBD] shadow-lg transition-colors hover:text-white">
+          Feedback
+        </button>
       </div>
     </div>
   );
