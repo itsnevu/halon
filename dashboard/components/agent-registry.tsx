@@ -377,7 +377,7 @@ export function AgentRegistry() {
         </div>
       }
       actions={
-        <div className="relative hidden aspect-[4/3] w-[320px] shrink-0 overflow-hidden rounded-2xl border border-line bg-black neu neu-raise lg:block">
+        <div className="relative hidden aspect-[4/3] w-[440px] max-w-full shrink-0 overflow-hidden rounded-2xl border border-line bg-black neu neu-raise md:block">
           <video
             className="size-full object-cover"
             src="/video/eth-forge.webm"
@@ -386,6 +386,7 @@ export function AgentRegistry() {
             muted
             loop
             playsInline
+            preload="auto"
             aria-hidden="true"
             style={{ filter: "hue-rotate(-115deg) saturate(1.15)" }}
           />
