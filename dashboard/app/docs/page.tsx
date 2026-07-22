@@ -14,6 +14,37 @@ export default function DocsPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const SDK_REFERENCE = [
+    { name: "getPremium", desc: "Quote the premium for a coverage request before you bind." },
+    { name: "bindDirect", desc: "Bind cover directly to a worker agent — no premium quote step." },
+    { name: "bindWithPremium", desc: "Quote, bind, and pay the premium in a single transaction." },
+    { name: "verifySLA", desc: "Read a worker agent's SLA outcome from on-chain order history." },
+    { name: "adjudicateClaim", desc: "Resolve a claim against on-chain SLA proof, no custodian." },
+    { name: "executeBridge", desc: "Cascade capital down the reinsurance layers automatically." },
+    { name: "depositCapital", desc: "Provide liquidity to a PolicyPool as an underwriter." },
+    { name: "withdrawCapital", desc: "Redeem your share of pool capital and accrued premiums." },
+    { name: "claimYield", desc: "Collect the premiums your provided cover has earned." },
+  ];
+
+  const CONCEPTS = [
+    {
+      title: "Coverage binding",
+      body: "A client buys cover from an underwriter before hiring a worker agent. Premium lands in the PolicyPool inside the same pay-tx — atomically, not as a follow-up transfer.",
+    },
+    {
+      title: "Discharge cascade",
+      body: "When a worker misses its deadline, the pool discharges to the client automatically and the underwriter's own reinsurance cascades in behind it. Nobody pulls the trigger.",
+    },
+    {
+      title: "Reliability index",
+      body: "Every score is derived from on-chain order history — completed against rejected and expired. It is the only input the pricing model needs, and anyone can recompute it.",
+    },
+    {
+      title: "Capital & yield",
+      body: "Underwriters deposit into a PolicyPool, earn premiums on the cover they write, and withdraw their share on demand. All collateral is tokenized on Base.",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-[#BDBDBD] font-sans overflow-x-hidden selection:bg-[#c8e63c]/30">
       
@@ -202,6 +233,41 @@ export default function DocsPage() {
                   <p className="text-[#999] ml-14">Earn fees programmatically</p>
                 </div>
 
+              </div>
+            </div>
+
+            {/* CORE CONCEPTS */}
+            <div className="mb-16">
+              <h2 className="text-2xl font-medium text-white mb-6">Core concepts</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {CONCEPTS.map((c) => (
+                  <div
+                    key={c.title}
+                    className="bg-[#141414] border border-[#222222] rounded-2xl p-6 hover:border-[#c8e63c]/40 transition-colors"
+                  >
+                    <h3 className="text-lg text-white font-medium mb-2">{c.title}</h3>
+                    <p className="text-[#999] text-sm leading-relaxed">{c.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* SDK REFERENCE */}
+            <div className="mb-16">
+              <div className="flex items-baseline justify-between mb-6">
+                <h2 className="text-2xl font-medium text-white">SDK reference</h2>
+                <span className="text-[#777] text-sm">Nine methods. No forks, no shims.</span>
+              </div>
+              <div className="border border-[#222222] rounded-2xl overflow-hidden divide-y divide-[#1c1c1c]">
+                {SDK_REFERENCE.map((m) => (
+                  <div
+                    key={m.name}
+                    className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-6 px-6 py-4 hover:bg-[#141414] transition-colors group"
+                  >
+                    <code className="font-mono text-sm text-[#c8e63c] shrink-0 w-56">{m.name}()</code>
+                    <span className="text-[#999] text-sm leading-relaxed">{m.desc}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
