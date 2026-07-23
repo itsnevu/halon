@@ -41,7 +41,7 @@ export default function DisputesPage() {
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 flex flex-col items-center pt-24 min-h-[80vh] px-4 relative">
+      <main className="flex-1 flex flex-col items-center pt-24 pb-32 min-h-[80vh] px-4 relative">
         <div className="absolute top-0 w-[800px] h-[300px] bg-danger/10 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="w-full max-w-2xl z-10">

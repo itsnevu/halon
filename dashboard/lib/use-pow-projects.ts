@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { ESCROW_FACTORY_ABI, ESCROW_PROJECT_ABI } from "./pow-abis";
 import { POW_CONFIG } from "./pow-config";
+import { robinhoodChain } from "./robinhood-chain";
 
 export type PowRole = "client" | "freelancer";
 
@@ -30,6 +31,7 @@ export function usePowProjects(role?: PowRole) {
     address: POW_CONFIG.escrowFactoryAddress,
     abi: ESCROW_FACTORY_ABI,
     functionName: "getDeployedProjectsCount",
+    chainId: robinhoodChain.id,
   });
   const count = countData ? Number(countData) : 0;
 
@@ -40,6 +42,7 @@ export function usePowProjects(role?: PowRole) {
       abi: ESCROW_FACTORY_ABI,
       functionName: "deployedProjects",
       args: [BigInt(i)],
+      chainId: robinhoodChain.id,
     })),
     query: { enabled: count > 0 },
   });
@@ -55,9 +58,9 @@ export function usePowProjects(role?: PowRole) {
   // 2) read client / freelancer / totalAmount for each project.
   const { data: metaData, isLoading } = useReadContracts({
     contracts: addresses.flatMap((addr) => [
-      { address: addr, abi: ESCROW_PROJECT_ABI, functionName: "client" },
-      { address: addr, abi: ESCROW_PROJECT_ABI, functionName: "freelancer" },
-      { address: addr, abi: ESCROW_PROJECT_ABI, functionName: "totalAmount" },
+      { address: addr, abi: ESCROW_PROJECT_ABI, functionName: "client", chainId: robinhoodChain.id },
+      { address: addr, abi: ESCROW_PROJECT_ABI, functionName: "freelancer", chainId: robinhoodChain.id },
+      { address: addr, abi: ESCROW_PROJECT_ABI, functionName: "totalAmount", chainId: robinhoodChain.id },
     ]),
     query: { enabled: addresses.length > 0 },
   });

@@ -6,7 +6,7 @@ import { formatUnits } from "viem";
 import { ESCROW_PROJECT_ABI } from "../../../lib/pow-abis";
 import { POW_CONFIG } from "../../../lib/pow-config";
 import { usePowProjects } from "../../../lib/use-pow-projects";
-import { explorerTx } from "../../../lib/robinhood-chain";
+import { explorerTx, robinhoodChain } from "../../../lib/robinhood-chain";
 import { FlowSteps } from "@/components/ui/flow-steps";
 
 export default function FreelancerDashboard() {
@@ -38,6 +38,7 @@ export default function FreelancerDashboard() {
     address: projectAddr,
     abi: ESCROW_PROJECT_ABI,
     functionName: "milestoneCount",
+    chainId: robinhoodChain.id,
     query: { enabled: !!projectAddr },
   });
   const milestoneCount = milestoneCountData ? Number(milestoneCountData) : 0;
@@ -48,6 +49,7 @@ export default function FreelancerDashboard() {
     abi: ESCROW_PROJECT_ABI,
     functionName: "milestones",
     args: [BigInt(milestoneId)],
+    chainId: robinhoodChain.id,
     query: { enabled: !!projectAddr && milestoneCount > 0 },
   });
 

@@ -29,17 +29,17 @@ const SYMBOL_COLORS: Record<string, string> = {
 type Token = {
   rank: number; name: string; symbol: string; price: number;
   fdv: number | null; vol: number; ch1h: number; ch24h: number;
-  spark: number[]; color: string; cgSlug: string;
+  spark: number[]; color: string; cgSlug: string; image: string;
 };
 
 // Which tokens to show + their display config. All market numbers are 0 until
 // the live CoinGecko fetch resolves — no fabricated seed prices are ever shown.
 const SEED_TOKENS: Token[] = [
-  { rank: 1, name: "Ethereum", symbol: "ETH", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#627EEA", cgSlug: "ethereum" },
-  { rank: 2, name: "Wrapped BTC", symbol: "WBTC", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#F7931A", cgSlug: "wrapped-bitcoin" },
-  { rank: 3, name: "Solana", symbol: "SOL", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#14F195", cgSlug: "solana" },
-  { rank: 4, name: "USD Coin", symbol: "USDC", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#2775CA", cgSlug: "usd-coin" },
-  { rank: 5, name: "Tether USD", symbol: "USDT", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#26A17B", cgSlug: "tether" },
+  { rank: 1, name: "Ethereum", symbol: "ETH", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#627EEA", cgSlug: "ethereum", image: "" },
+  { rank: 2, name: "Wrapped BTC", symbol: "WBTC", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#F7931A", cgSlug: "wrapped-bitcoin", image: "" },
+  { rank: 3, name: "Solana", symbol: "SOL", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#14F195", cgSlug: "solana", image: "" },
+  { rank: 4, name: "USD Coin", symbol: "USDC", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#2775CA", cgSlug: "usd-coin", image: "" },
+  { rank: 5, name: "Tether USD", symbol: "USDT", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#26A17B", cgSlug: "tether", image: "" },
 ];
 
 /* ── formatting ────────────────────────────────────────────────── */
@@ -98,6 +98,50 @@ function Sparkline({ prices, positive, seed }: { prices: number[]; positive: boo
   );
 }
 
+/* ── token icon: real CoinGecko logo, with a coloured-initial fallback ──
+ * The markets endpoint returns `image` (a hosted PNG). We render that; if it
+ * 404s or the network drops it, `onError` swaps in the old letter avatar so a
+ * row never shows a broken-image glyph. Plain <img> on purpose — these are
+ * remote hosts and next/image would need each one allow-listed in config. */
+function TokenIcon({
+  symbol,
+  image,
+  color,
+  size,
+}: {
+  symbol: string;
+  image: string;
+  color: string;
+  size: number;
+}) {
+  const [broken, setBroken] = useState(false);
+  const box = { width: size, height: size };
+
+  if (image && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={image}
+        alt={symbol}
+        width={size}
+        height={size}
+        loading="lazy"
+        onError={() => setBroken(true)}
+        className="shrink-0 rounded-full bg-surface-3 object-cover"
+        style={box}
+      />
+    );
+  }
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center rounded-full text-xs font-medium text-fg"
+      style={{ ...box, backgroundColor: color }}
+    >
+      {symbol.charAt(0)}
+    </div>
+  );
+}
+
 function EmptyPanel({ label }: { label: string }) {
   return (
     <div className="border border-dashed border-line rounded-2xl py-16 text-center text-mist bg-surface-2/40">
@@ -141,6 +185,7 @@ function ExploreContent() {
                 spark: (c.sparkline_in_7d?.price ?? []).slice(-24),
                 color: SYMBOL_COLORS[symbol] ?? "#7A7A7A",
                 cgSlug: c.id,
+                image: c.image ?? "",
               };
             }),
           );
@@ -256,12 +301,7 @@ function ExploreContent() {
                         <Sparkline prices={t.spark} positive={pos} />
                       </div>
                       <div className="flex items-center gap-3">
-                        <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-fg font-medium text-xs shrink-0"
-                          style={{ backgroundColor: t.color }}
-                        >
-                          {t.symbol.charAt(0)}
-                        </div>
+                        <TokenIcon symbol={t.symbol} image={t.image} color={t.color} size={36} />
                         <div className="min-w-0">
                           <div className="text-fg font-medium truncate">{t.name}</div>
                           <div className="text-mist text-xs">{t.symbol}</div>
@@ -327,12 +367,7 @@ function ExploreContent() {
                               <td className="py-5 px-4 text-mist">{token.rank}</td>
                               <td className="py-5 px-4">
                                 <div className="flex items-center gap-3">
-                                  <div
-                                    className="w-8 h-8 rounded-full flex items-center justify-center text-fg font-medium text-xs shrink-0"
-                                    style={{ backgroundColor: token.color }}
-                                  >
-                                    {token.symbol.charAt(0)}
-                                  </div>
+                                  <TokenIcon symbol={token.symbol} image={token.image} color={token.color} size={32} />
                                   <div>
                                     <div className="text-fg font-medium">{token.name}</div>
                                     <div className="text-mist text-xs">{token.symbol}</div>

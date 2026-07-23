@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { HalonWordmark } from "@/components/ui/logo";
 import { ConnectKitButton } from "connectkit";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/cn";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { SearchBox } from "@/components/search-box";
 import { NAV, SITE } from "@/lib/site";
 
 
@@ -40,18 +40,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
 
-  const router = useRouter();
-  const [search, setSearch] = useState("");
-
   const { data: session, status } = useSession();
-
-  /* Search submit → the Explore page, carrying the query. */
-  function submitSearch(e: FormEvent) {
-    e.preventDefault();
-    const q = search.trim();
-    router.push(q ? `/explore?q=${encodeURIComponent(q)}` : "/explore");
-    setOpen(false);
-  }
 
   /* Header goes opaque once the hero has moved. rAF-throttled. */
   useEffect(() => {
@@ -127,13 +116,13 @@ export function SiteHeader() {
           {/* center */}
           <nav
             aria-label="Primary"
-            className="hidden flex-1 items-center justify-center gap-7 lg:flex"
+            className="hidden flex-1 items-center justify-center gap-5 xl:gap-6 lg:flex"
           >
             {NAV.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                className="group relative py-1 text-sm text-mist transition-colors duration-200 hover:text-fg"
+                className="group relative py-1 text-sm whitespace-nowrap text-mist transition-colors duration-200 hover:text-fg"
               >
                 {item.label}
                 <span
@@ -152,25 +141,7 @@ export function SiteHeader() {
           <div className="hidden items-center gap-2.5 lg:flex">
             
             {/* SEARCH BAR */}
-            <form onSubmit={submitSearch} className="relative group mr-2">
-              <button
-                type="submit"
-                aria-label="Search"
-                className="absolute inset-y-0 left-0 pl-3 flex items-center text-mist group-focus-within:text-lime hover:text-lime transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              </button>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search tokens, pools..."
-                className="bg-surface-2 border border-line text-fg text-sm rounded-full pl-9 pr-10 py-2 w-[240px] outline-none focus:border-lime/40 focus:bg-surface-3 transition-all"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-xs bg-surface-3 text-mist px-1.5 py-0.5 rounded border border-line">↵</span>
-              </div>
-            </form>
+            <SearchBox variant="desktop" />
 
             <AnimatedThemeToggler className="mr-1" />
             <div className="flex items-center pl-1">
@@ -224,24 +195,9 @@ export function SiteHeader() {
             </div>
           </div>
 
-          {/* Search — same handler as desktop; routes to /explore and closes the drawer. */}
+          {/* Search — grouped Tokens / Pools / Pages; closes the drawer on navigate. */}
           <div className="relative mx-auto w-full max-w-7xl px-5 pt-2 pb-1 sm:px-8">
-            <form onSubmit={submitSearch} className="relative">
-              <button
-                type="submit"
-                aria-label="Search"
-                className="absolute inset-y-0 left-0 flex items-center pl-4 text-mist"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              </button>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search tokens, pools..."
-                className="w-full rounded-full border border-line bg-surface-2 py-3 pl-11 pr-4 text-sm text-fg outline-none transition-colors focus:border-lime/40"
-              />
-            </form>
+            <SearchBox variant="mobile" onNavigate={() => setOpen(false)} />
           </div>
 
           <nav

@@ -5,7 +5,7 @@ import { useAccount, useWriteContract, useReadContract, useWaitForTransactionRec
 import { parseUnits, formatUnits } from "viem";
 import { ESCROW_FACTORY_ABI, ESCROW_PROJECT_ABI, ERC20_ABI } from "../../../lib/pow-abis";
 import { POW_CONFIG } from "../../../lib/pow-config";
-import { explorerTx } from "../../../lib/robinhood-chain";
+import { explorerTx, robinhoodChain } from "../../../lib/robinhood-chain";
 import { FlowSteps } from "@/components/ui/flow-steps";
 
 export default function ClientDashboard() {
@@ -32,6 +32,7 @@ export default function ClientDashboard() {
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: [address as `0x${string}`],
+    chainId: robinhoodChain.id,
     query: { enabled: !!address }
   });
 
@@ -40,6 +41,7 @@ export default function ClientDashboard() {
     abi: ERC20_ABI,
     functionName: 'allowance',
     args: [address as `0x${string}`, POW_CONFIG.escrowFactoryAddress],
+    chainId: robinhoodChain.id,
     query: { enabled: !!address }
   });
 
@@ -48,6 +50,7 @@ export default function ClientDashboard() {
     address: POW_CONFIG.escrowFactoryAddress,
     abi: ESCROW_FACTORY_ABI,
     functionName: 'getDeployedProjectsCount',
+    chainId: robinhoodChain.id,
   });
 
   // Get Last Deployed Project Address
@@ -57,6 +60,7 @@ export default function ClientDashboard() {
     abi: ESCROW_FACTORY_ABI,
     functionName: 'deployedProjects',
     args: [BigInt(lastProjectIndex >= 0 ? lastProjectIndex : 0)],
+    chainId: robinhoodChain.id,
     query: { enabled: lastProjectIndex >= 0 }
   });
 
@@ -66,6 +70,7 @@ export default function ClientDashboard() {
     abi: ESCROW_PROJECT_ABI,
     functionName: 'milestones',
     args: [BigInt(0)],
+    chainId: robinhoodChain.id,
     query: { enabled: !!lastProjectAddress }
   });
 
@@ -74,6 +79,7 @@ export default function ClientDashboard() {
     address: lastProjectAddress as `0x${string}`,
     abi: ESCROW_PROJECT_ABI,
     functionName: 'getCollateralValueUSD',
+    chainId: robinhoodChain.id,
     query: { enabled: !!lastProjectAddress }
   });
 

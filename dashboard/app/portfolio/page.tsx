@@ -19,14 +19,14 @@ import { formatUnits, parseEther, isAddress } from "viem";
 import { ERC20_ABI } from "@/lib/pow-abis";
 import { POW_CONFIG } from "@/lib/pow-config";
 import { AGGREGATOR_V3_ABI } from "@/lib/onchain";
-import { explorerTx } from "@/lib/robinhood-chain";
+import { explorerTx, robinhoodChain } from "@/lib/robinhood-chain";
 
 const TABS = ["Overview", "Tokens", "NFTs", "Activity"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function PortfolioPage() {
   const { address, isConnected } = useAccount();
-  const { data: balance } = useBalance({ address });
+  const { data: balance } = useBalance({ address, chainId: robinhoodChain.id });
   const { data: ensName } = useEnsName({ address });
   const { setOpen } = useModal();
 
@@ -63,6 +63,7 @@ export default function PortfolioPage() {
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
+    chainId: robinhoodChain.id,
     query: { enabled: !!address }
   });
 
@@ -71,6 +72,7 @@ export default function PortfolioPage() {
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
+    chainId: robinhoodChain.id,
     query: { enabled: !!address }
   });
 
@@ -80,11 +82,13 @@ export default function PortfolioPage() {
     address: POW_CONFIG.mockOracleAddress,
     abi: AGGREGATOR_V3_ABI,
     functionName: "latestRoundData",
+    chainId: robinhoodChain.id,
   });
   const { data: aaplFeedDecimals } = useReadContract({
     address: POW_CONFIG.mockOracleAddress,
     abi: AGGREGATOR_V3_ABI,
     functionName: "decimals",
+    chainId: robinhoodChain.id,
   });
 
   // Token amounts held.

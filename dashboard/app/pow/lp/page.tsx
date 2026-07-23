@@ -6,7 +6,7 @@ import { parseUnits, formatUnits } from "viem";
 import { MORPHO_VAULT_ABI, ERC20_ABI } from "../../../lib/pow-abis";
 import { POW_CONFIG } from "../../../lib/pow-config";
 import { usePowProjects } from "../../../lib/use-pow-projects";
-import { explorerTx, explorerAddr } from "../../../lib/robinhood-chain";
+import { explorerTx, explorerAddr, robinhoodChain } from "../../../lib/robinhood-chain";
 
 export default function LPDashboard() {
   const { address } = useAccount();
@@ -17,6 +17,7 @@ export default function LPDashboard() {
     address: POW_CONFIG.mockMorphoVaultAddress,
     abi: MORPHO_VAULT_ABI,
     functionName: 'totalAssets',
+    chainId: robinhoodChain.id,
   });
 
   // Real USDG wallet balance for the connected account.
@@ -25,6 +26,7 @@ export default function LPDashboard() {
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
+    chainId: robinhoodChain.id,
     query: { enabled: !!address },
   });
   const usdgBalanceNum = usdgBalance ? Number(formatUnits(BigInt(usdgBalance), 18)) : 0;
@@ -36,6 +38,7 @@ export default function LPDashboard() {
     abi: ERC20_ABI,
     functionName: 'allowance',
     args: address ? [address, POW_CONFIG.mockMorphoVaultAddress] : undefined,
+    chainId: robinhoodChain.id,
     query: { enabled: !!address },
   });
 
