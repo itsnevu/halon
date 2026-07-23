@@ -378,18 +378,17 @@ export function AgentRegistry() {
       }
       actions={
         <div className="relative hidden aspect-[4/3] w-[440px] max-w-full shrink-0 overflow-hidden rounded-2xl border border-line bg-black neu neu-raise md:block">
-          <video
-            className="size-full object-cover"
-            src="/video/eth-forge.webm"
-            poster="/video/eth-forge-poster.jpg"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-hidden="true"
-            style={{ filter: "hue-rotate(-115deg) saturate(1.15)" }}
-          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div
+              aria-hidden="true"
+              style={{
+                filter:
+                  "sepia(1) saturate(6) hue-rotate(30deg) brightness(1.15) drop-shadow(0 0 26px rgba(200,230,60,0.35))",
+              }}
+            >
+              <LottiePlayer animationPath="/lottie/stack.json" className="h-[560px] w-[560px]" />
+            </div>
+          </div>
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 mix-blend-color opacity-70"
