@@ -30,10 +30,7 @@ export default function Page() {
             <div className="flex flex-col lg:flex-row items-center justify-between gap-8 rounded-3xl neu neu-raise border border-line p-8 md:p-12 bg-surface-2/90">
               <div className="space-y-4 max-w-2xl text-left">
                 <div className="inline-flex items-center gap-2 rounded-full border border-lime/30 bg-lime/10 px-3.5 py-1 text-xs font-semibold text-lime">
-                  <span className="relative flex size-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-75"></span>
-                    <span className="relative inline-flex size-2 rounded-full bg-lime"></span>
-                  </span>
+                  <span className="size-1.5 rounded-full bg-lime"></span>
                   ROBINHOOD CHAIN HACKATHON 2026
                 </div>
                 <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">

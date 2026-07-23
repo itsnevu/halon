@@ -241,9 +241,9 @@ export default function DocsPage() {
           <Link href="/" className="text-[#999] transition-colors hover:text-white text-sm">
             Dashboard
           </Link>
-          <button className="rounded-full bg-[#c8e63c] px-4 py-1.5 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90">
+          <Link href="/login" className="rounded-full bg-[#c8e63c] px-4 py-1.5 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90">
             API keys
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -546,9 +546,9 @@ const y = await halon.claimYield("0xPool…");`} />
                 read the protocol overview.
               </p>
               <div className="flex flex-wrap gap-3">
-                <button className="rounded-full bg-[#c8e63c] px-5 py-2.5 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90">
+                <Link href="/login" className="rounded-full bg-[#c8e63c] px-5 py-2.5 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90">
                   Get API keys
-                </button>
+                </Link>
                 <Link href="/" className="rounded-full border border-[#2B2B2B] px-5 py-2.5 text-sm font-medium text-[#BDBDBD] transition-colors hover:text-white">
                   Open dashboard
                 </Link>
@@ -556,13 +556,6 @@ const y = await halon.claimYield("0xPool…");`} />
             </section>
           </div>
         </main>
-      </div>
-
-      {/* Feedback Float */}
-      <div className="fixed bottom-6 right-6 hidden md:block">
-        <button className="rounded-full border border-[#2B2B2B] bg-[#1A1A1A] px-4 py-2 text-sm font-medium text-[#BDBDBD] shadow-lg transition-colors hover:text-white">
-          Feedback
-        </button>
       </div>
     </div>
   );

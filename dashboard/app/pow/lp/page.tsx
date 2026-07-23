@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { parseUnits } from "viem";
-import { MORPHO_VAULT_ABI } from "../../../lib/pow-abis";
+import { parseUnits, formatUnits } from "viem";
+import { MORPHO_VAULT_ABI, ERC20_ABI } from "../../../lib/pow-abis";
 import { POW_CONFIG } from "../../../lib/pow-config";
 
 export default function LPDashboard() {
@@ -15,6 +15,16 @@ export default function LPDashboard() {
     abi: MORPHO_VAULT_ABI,
     functionName: 'totalAssets',
   });
+
+  // Real USDG wallet balance for the connected account.
+  const { data: usdgBalance } = useReadContract({
+    address: POW_CONFIG.mockUSDGAddress,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+  const usdgBalanceNum = usdgBalance ? Number(formatUnits(BigInt(usdgBalance), 18)) : 0;
 
   const { data: hash, writeContract, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
@@ -67,17 +77,31 @@ export default function LPDashboard() {
           <div className="space-y-5">
             <div className="p-5 rounded-2xl border border-line bg-surface space-y-1">
               <span className="text-xs text-mist font-mono uppercase">Your Available Balance</span>
-              <div className="text-2xl font-bold text-white font-mono">50,000 USDG</div>
+              <div className="text-2xl font-bold text-white font-mono">
+                {address
+                  ? `${usdgBalanceNum.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDG`
+                  : "— USDG"}
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-mist uppercase mb-2">Deposit Amount</label>
-              <input 
-                type="number" 
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-mono text-mist uppercase">Deposit Amount</label>
+                <button
+                  type="button"
+                  onClick={() => setDepositAmount(String(usdgBalanceNum))}
+                  disabled={!address || usdgBalanceNum <= 0}
+                  className="text-xs font-mono text-spring hover:text-spring/80 disabled:opacity-40 transition-colors"
+                >
+                  MAX
+                </button>
+              </div>
+              <input
+                type="number"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="1,000" 
-                className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-spring outline-none font-mono transition-colors" 
+                placeholder="1,000"
+                className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-spring outline-none font-mono transition-colors"
               />
             </div>
 
@@ -92,7 +116,16 @@ export default function LPDashboard() {
                isPending ? "Sign in wallet..." : "Deposit to Morpho Earn Vault"}
             </button>
 
-            {hash && <div className="text-xs text-mist font-mono text-center truncate">Tx: {hash}</div>}
+            {hash && (
+              <a
+                href={`https://basescan.org/tx/${hash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-center text-xs text-spring underline font-mono break-all"
+              >
+                Tx: {hash.slice(0, 10)}…{hash.slice(-8)}
+              </a>
+            )}
           </div>
         </div>
 
@@ -129,6 +162,26 @@ export default function LPDashboard() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* How your liquidity earns — static pipeline overview */}
+      <div className="rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8">
+        <h2 className="text-xl font-bold font-display text-white mb-6">How your liquidity earns</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { n: "01", t: "Supply USDG", d: "Deposit into the Morpho vault and earn base APY immediately." },
+            { n: "02", t: "Fund advances", d: "Idle liquidity fronts 85% payouts on AI-verified milestones." },
+            { n: "03", t: "Repaid + yield", d: "Clients settle Net-30, returning principal plus bonus yield." },
+          ].map((s) => (
+            <div key={s.n} className="p-5 rounded-2xl border border-line bg-surface space-y-3">
+              <span className="size-8 rounded-full bg-spring/10 border border-spring/30 text-spring font-mono text-xs font-bold flex items-center justify-center">
+                {s.n}
+              </span>
+              <h4 className="font-bold text-white text-base">{s.t}</h4>
+              <p className="text-xs text-mist leading-relaxed">{s.d}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
 import { HalonWordmark } from "@/components/ui/logo";
 import { ConnectKitButton } from "connectkit";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/cn";
 import { NAV, SITE } from "@/lib/site";
+
+type ThemePref = "auto" | "light" | "dark";
+const LANGUAGES = ["English", "Bahasa", "Español", "中文"] as const;
+const CURRENCIES = ["USD", "EUR", "IDR", "ETH"] as const;
 
 /**
  * Two hairlines that fold into an X. Transform lives inline because Tailwind
@@ -38,8 +43,52 @@ export function SiteHeader() {
   const [prefsOpen, setPrefsOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const prefsRef = useRef<HTMLDivElement>(null);
-  
+
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [theme, setTheme] = useState<ThemePref>("auto");
+  const [lang, setLang] = useState<string>("English");
+  const [currency, setCurrency] = useState<string>("USD");
+
   const { data: session, status } = useSession();
+
+  /* Load saved preferences and apply the theme attribute to <html>. */
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("halon:prefs") || "{}");
+      if (saved.theme) setTheme(saved.theme);
+      if (saved.lang) setLang(saved.lang);
+      if (saved.currency) setCurrency(saved.currency);
+    } catch {
+      /* ignore malformed storage */
+    }
+  }, []);
+
+  useEffect(() => {
+    const resolved =
+      theme === "auto"
+        ? window.matchMedia("(prefers-color-scheme: light)").matches
+          ? "light"
+          : "dark"
+        : theme;
+    document.documentElement.dataset.theme = resolved;
+    try {
+      localStorage.setItem("halon:prefs", JSON.stringify({ theme, lang, currency }));
+    } catch {
+      /* ignore */
+    }
+  }, [theme, lang, currency]);
+
+  /* Search submit → the Explore page, carrying the query. */
+  function submitSearch(e: FormEvent) {
+    e.preventDefault();
+    const q = search.trim();
+    router.push(q ? `/explore?q=${encodeURIComponent(q)}` : "/explore");
+    setOpen(false);
+  }
+
+  const cycle = (list: readonly string[], current: string) =>
+    list[(list.indexOf(current) + 1) % list.length];
 
   /* Header goes opaque once the hero has moved. rAF-throttled. */
   useEffect(() => {
@@ -151,19 +200,25 @@ export function SiteHeader() {
           <div className="hidden items-center gap-2.5 lg:flex">
             
             {/* SEARCH BAR */}
-            <div className="relative group mr-2">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-mist group-focus-within:text-lime transition-colors">
+            <form onSubmit={submitSearch} className="relative group mr-2">
+              <button
+                type="submit"
+                aria-label="Search"
+                className="absolute inset-y-0 left-0 pl-3 flex items-center text-mist group-focus-within:text-lime hover:text-lime transition-colors"
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              </div>
-              <input 
-                type="text" 
+              </button>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search tokens, pools..."
                 className="bg-surface-2 border border-line text-white text-sm rounded-full pl-9 pr-10 py-2 w-[240px] outline-none focus:border-lime/40 focus:bg-surface-3 transition-all"
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-xs bg-surface-3 text-mist px-1.5 py-0.5 rounded border border-line">/</span>
+                <span className="text-xs bg-surface-3 text-mist px-1.5 py-0.5 rounded border border-line">↵</span>
               </div>
-            </div>
+            </form>
 
             {/* PREFERENCES MENU */}
             <div className="relative" ref={prefsRef}>
@@ -181,34 +236,67 @@ export function SiteHeader() {
                 <div className="absolute right-0 top-12 w-[320px] bg-[#131313] border border-[#2B2B2B] rounded-2xl shadow-2xl p-2 z-50 animate-fade-in origin-top-right">
                   <div className="px-3 py-3 text-white font-medium mb-1">Global preferences</div>
                   
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group">
-                    <span className="text-mist group-hover:text-white transition-colors">Theme</span>
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl group">
+                    <span className="text-mist transition-colors">Theme</span>
                     <div className="flex bg-[#1E1E1E] rounded-full p-1 border border-[#2B2B2B]">
-                      <button className="px-3 py-1 bg-[#2B2B2B] text-white text-xs font-medium rounded-full">Auto</button>
-                      <button className="px-3 py-1 text-mist hover:text-white text-xs font-medium rounded-full flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setTheme("auto")}
+                        className={cn(
+                          "px-3 py-1 text-xs font-medium rounded-full transition-colors",
+                          theme === "auto" ? "bg-[#2B2B2B] text-white" : "text-mist hover:text-white",
+                        )}
+                      >
+                        Auto
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Light theme"
+                        onClick={() => setTheme("light")}
+                        className={cn(
+                          "px-3 py-1 text-xs font-medium rounded-full flex items-center justify-center transition-colors",
+                          theme === "light" ? "bg-[#2B2B2B] text-white" : "text-mist hover:text-white",
+                        )}
+                      >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                       </button>
-                      <button className="px-3 py-1 text-mist hover:text-white text-xs font-medium rounded-full flex items-center justify-center">
+                      <button
+                        type="button"
+                        aria-label="Dark theme"
+                        onClick={() => setTheme("dark")}
+                        className={cn(
+                          "px-3 py-1 text-xs font-medium rounded-full flex items-center justify-center transition-colors",
+                          theme === "dark" ? "bg-[#2B2B2B] text-white" : "text-mist hover:text-white",
+                        )}
+                      >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setLang((l) => cycle(LANGUAGES, l))}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors group mt-1 text-left"
+                  >
                     <span className="text-mist group-hover:text-white transition-colors">Language</span>
                     <div className="flex items-center gap-1 text-white font-medium text-sm">
-                      English
+                      {lang}
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mist"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </div>
-                  </div>
+                  </button>
 
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrency((c) => cycle(CURRENCIES, c))}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors group mt-1 text-left"
+                  >
                     <span className="text-mist group-hover:text-white transition-colors">Currency</span>
                     <div className="flex items-center gap-1 text-white font-medium text-sm">
-                      USD
+                      {currency}
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mist"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </div>
-                  </div>
+                  </button>
 
                 </div>
               )}

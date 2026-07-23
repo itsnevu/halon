@@ -117,7 +117,7 @@ const FLOWS = ["premium", "cede"];
 
 function ChainNode({ role, name }: { role: string; name: string }) {
   return (
-    <div className="relative shrink-0 rounded-xl border border-line bg-surface/80 px-4 py-3 text-left backdrop-blur">
+    <div className="relative shrink-0 rounded-xl border border-line bg-surface/80 px-4 py-3 text-left backdrop-blur transition-colors duration-200 hover:border-lime/40">
       <div className="flex items-center gap-2">
         <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-lime" />
         <span className="font-mono text-[0.625rem] tracking-[0.16em] text-mist-dim uppercase">

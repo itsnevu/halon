@@ -1,0 +1,34 @@
+[
+  {
+    "type": "event",
+    "name": "InvoiceCreated",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true },
+      { "name": "client", "type": "address", "indexed": false },
+      { "name": "freelancer", "type": "address", "indexed": false },
+      { "name": "amount", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AdvanceFunded",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true },
+      { "name": "advancedAmount", "type": "uint256", "indexed": false },
+      { "name": "payout", "type": "uint256", "indexed": false },
+      { "name": "fee", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InvoiceRepaid",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true },
+      { "name": "totalRepaid", "type": "uint256", "indexed": false },
+      { "name": "lpYield", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  }
+]

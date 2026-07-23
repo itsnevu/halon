@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/ui/reveal";
 import { Section } from "@/components/ui/section";
 import { SectionArt } from "@/components/ui/section-art";
-import LottiePlayer from "@/components/ui/lottie-player";
 import iconCascade from "@/public/icon-cascade.png";
 import artChain from "@/public/art-chain.png";
 import {
@@ -371,21 +370,6 @@ export function CascadeDiagram() {
       wide
       clip={false}
       icon={iconCascade}
-      art={
-        <div className="absolute inset-x-0 -top-48 -z-10 h-[760px] flex justify-center opacity-40 mix-blend-screen pointer-events-none">
-          {/* The mark renders as grey glass, so hue-rotate alone can't reach the brand.
-              Colorize it (sepia → saturate → hue-rotate) onto HALON lime and add a soft
-              neon bloom. */}
-          <div
-            style={{
-              filter:
-                "sepia(1) saturate(6) hue-rotate(30deg) brightness(1.15) drop-shadow(0 0 26px rgba(200,230,60,0.35))",
-            }}
-          >
-            <LottiePlayer animationPath="/lottie/stack.json" className="w-[1000px] h-[1000px]" />
-          </div>
-        </div>
-      }
       eyebrow="The cascade"
       index="01"
       title="One failure, three layers, zero humans."

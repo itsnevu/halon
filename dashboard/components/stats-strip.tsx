@@ -82,22 +82,18 @@ export function StatsStrip() {
       className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20"
     >
       <Reveal>
-        <div className="mb-4 flex justify-end">
+        {/* A whisper, not a button: one dot + one muted word, no pill, no border. */}
+        <div className="mb-4 flex items-center justify-end gap-1.5">
           <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[0.625rem] uppercase tracking-[0.16em]",
-              live
-                ? "border-lime/30 bg-lime/10 text-lime"
-                : "border-line bg-surface-2 text-mist-dim",
-            )}
+            className={cn("size-1.5 rounded-full", live ? "bg-lime" : "bg-mist-dim")}
             title={
               live
                 ? "Read live from the PolicyPool contract"
                 : "Illustrative fixture — set NEXT_PUBLIC_POLICY_POOL to go live"
             }
-          >
-            <span className={cn("size-1.5 rounded-full", live ? "bg-lime" : "bg-mist-dim")} />
-            {live ? "Live · on-chain" : "Demo data"}
+          />
+          <span className="font-mono text-[0.625rem] uppercase tracking-[0.16em] text-mist-dim">
+            {live ? "Live" : "Demo"}
           </span>
         </div>
         <div className="panel overflow-hidden">
@@ -133,7 +129,7 @@ export function StatsStrip() {
 
             <Cell
               label="Median discharge"
-              sub={<SubLine>order_rejected → USDC landed</SubLine>}
+              sub={<SubLine>From failure to payout</SubLine>}
             >
               {secondsLabel(stats.medianDischargeSeconds)}
             </Cell>
@@ -149,7 +145,7 @@ export function StatsStrip() {
                     <div className="h-full rounded-full bg-lime" style={{ width: lossBarWidth }} />
                   </div>
                   <div className="mt-2">
-                    <SubLine>claims / premiums earned</SubLine>
+                    <SubLine>Claims vs premiums earned</SubLine>
                   </div>
                 </>
               }

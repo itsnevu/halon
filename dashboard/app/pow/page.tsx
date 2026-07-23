@@ -8,10 +8,7 @@ export default function PoWLandingPage() {
       {/* Hero Header */}
       <div className="text-center space-y-6 max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 rounded-full border border-lime/30 bg-lime/10 px-4 py-1.5 text-xs font-semibold text-lime tracking-wide uppercase">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-75"></span>
-            <span className="relative inline-flex size-2 rounded-full bg-lime"></span>
-          </span>
+          <span className="size-1.5 rounded-full bg-lime"></span>
           ROBINHOOD CHAIN HACKATHON 2026
         </div>
 

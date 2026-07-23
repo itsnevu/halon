@@ -1,0 +1,37 @@
+[
+  {
+    "type": "event",
+    "name": "MilestoneCreated",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true },
+      { "name": "amount", "type": "uint256", "indexed": false },
+      { "name": "description", "type": "string", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MilestoneAIApproved",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true },
+      { "name": "score", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MilestoneClientApproved",
+    "inputs": [{ "name": "id", "type": "uint256", "indexed": true }],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MilestonePaid",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true },
+      { "name": "amount", "type": "uint256", "indexed": false },
+      { "name": "to", "type": "address", "indexed": false }
+    ],
+    "anonymous": false
+  }
+]

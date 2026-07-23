@@ -1,0 +1,13 @@
+[
+  {
+    "type": "event",
+    "name": "ProjectCreated",
+    "inputs": [
+      { "name": "projectAddress", "type": "address", "indexed": true },
+      { "name": "client", "type": "address", "indexed": true },
+      { "name": "freelancer", "type": "address", "indexed": true },
+      { "name": "amount", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  }
+]

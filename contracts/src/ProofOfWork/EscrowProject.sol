@@ -65,6 +65,11 @@ contract EscrowProject is ReentrancyGuard {
         totalAmount = _totalAmount;
     }
 
+    /// @notice Number of milestones on this project. Lets the UI enumerate them.
+    function milestoneCount() external view returns (uint256) {
+        return milestones.length;
+    }
+
     function addMilestone(uint256 amount, string memory description) external onlyClient {
         uint256 id = milestones.length;
         milestones.push(Milestone({

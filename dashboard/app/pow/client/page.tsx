@@ -5,6 +5,7 @@ import { useAccount, useWriteContract, useReadContract, useWaitForTransactionRec
 import { parseUnits, formatUnits } from "viem";
 import { ESCROW_FACTORY_ABI, ESCROW_PROJECT_ABI, ERC20_ABI } from "../../../lib/pow-abis";
 import { POW_CONFIG } from "../../../lib/pow-config";
+import { FlowSteps } from "@/components/ui/flow-steps";
 
 export default function ClientDashboard() {
   const { address, isConnected } = useAccount();
@@ -15,6 +16,9 @@ export default function ClientDashboard() {
   // Milestone creation form state
   const [milestoneDesc, setMilestoneDesc] = useState("Milestone #1: Frontend Mockup");
   const [milestoneAmt, setMilestoneAmt] = useState("30");
+
+  // Advance-financing opt-in (per client, UI preference)
+  const [advanceEnabled, setAdvanceEnabled] = useState(false);
 
   const { data: hash, writeContract, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
@@ -165,7 +169,7 @@ export default function ClientDashboard() {
 
         <div className="flex items-center gap-4">
           <div className="neu neu-raise px-5 py-3 rounded-2xl border border-line bg-surface-2 flex items-center gap-3">
-            <div className="size-3 rounded-full bg-lime animate-pulse" />
+            <div className="size-2.5 rounded-full bg-lime" />
             <div>
               <div className="text-xs text-mist font-mono uppercase">Client Credit Rating</div>
               <div className="text-lg font-bold text-lime font-display">95 / 100 <span className="text-xs font-normal text-mist">(Prime)</span></div>
@@ -250,7 +254,16 @@ export default function ClientDashboard() {
                   </button>
                 )}
 
-                {hash && <div className="mt-3 text-xs text-mist font-mono text-center truncate">Tx: {hash}</div>}
+                {hash && (
+                  <a
+                    href={`https://basescan.org/tx/${hash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 block text-center text-xs text-lime underline font-mono break-all"
+                  >
+                    Tx: {hash.slice(0, 10)}…{hash.slice(-8)}
+                  </a>
+                )}
               </div>
             </div>
           )}
@@ -272,6 +285,20 @@ export default function ClientDashboard() {
         <div className="lg:col-span-5 space-y-6">
           <div className="rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8 space-y-4">
             <h2 className="text-xl font-bold font-display text-white">Project Milestones</h2>
+
+            {lastProjectAddress && (
+              <FlowSteps
+                steps={["Escrow", "AI verify", "Approve", "Payout"]}
+                current={
+                  [
+                    !!lastProjectAddress,
+                    !!(milestone0 && milestone0[3]),
+                    !!(milestone0 && milestone0[5]),
+                    !!(milestone0 && milestone0[6]),
+                  ].filter(Boolean).length
+                }
+              />
+            )}
             
             {lastProjectAddress ? (
               <div className="space-y-4">
@@ -375,8 +402,16 @@ export default function ClientDashboard() {
             <p className="text-xs text-mist leading-relaxed">
               Because your Client Credit Score is &gt; 80, your projects qualify for Morpho DeFi Earn Pool advance liquidity.
             </p>
-            <button className="w-full py-3 rounded-full bg-lime/20 border border-lime/40 text-lime text-xs font-bold hover:bg-lime/30 transition-colors">
-              Enable Advance Liquidity Option
+            <button
+              onClick={() => setAdvanceEnabled((v) => !v)}
+              aria-pressed={advanceEnabled}
+              className={`w-full py-3 rounded-full text-xs font-bold transition-colors border ${
+                advanceEnabled
+                  ? "bg-lime text-lime-ink border-lime"
+                  : "bg-lime/20 border-lime/40 text-lime hover:bg-lime/30"
+              }`}
+            >
+              {advanceEnabled ? "✓ Advance Liquidity Enabled" : "Enable Advance Liquidity Option"}
             </button>
           </div>
         </div>

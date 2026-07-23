@@ -95,8 +95,8 @@ const linkClass = "text-sm text-mist-dim transition-colors hover:text-white";
 
 const BUILD_LINKS = [
   { label: "Documentation", href: SITE.docs, external: false },
-  { label: "Smart Contracts", href: "#", external: false },
-  { label: "Bug Bounty", href: "#", external: false },
+  { label: "Proof of Work", href: "/pow", external: false },
+  { label: "Get API keys", href: "/login", external: false },
 ] as const;
 
 export function SiteFooter() {

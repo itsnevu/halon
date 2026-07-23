@@ -4,4 +4,5 @@ pydantic
 PyPDF2
 python-multipart
 web3
-
+openai
+python-dotenv
