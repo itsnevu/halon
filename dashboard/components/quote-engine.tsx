@@ -24,8 +24,16 @@ import {
   MIST_DIM as AXIS_TEXT,
   limeAlpha,
 } from "@/lib/brand";
-import { POOL_A, UTIL_A, WORKERS } from "@/lib/data";
-import { bps, multiple, pct, usd, usd0, usdCompact } from "@/lib/format";
+import { useReadContract } from "wagmi";
+import {
+  HALON_CHAIN_ID,
+  HAS_DEPLOYMENT,
+  POLICY_POOL_ABI,
+  POLICY_POOL_ADDRESS,
+  fromUsdc,
+} from "@/lib/onchain";
+import { useAgents } from "@/lib/use-agents";
+import { bps, multiple, pct, shortAddr, usd, usd0, usdCompact } from "@/lib/format";
 import {
   premiumCurve,
   quote,
@@ -60,8 +68,8 @@ const BAND_TONE: Record<RiskBand, Tone> = {
   declined: "danger",
 };
 
-/** Default selection: Aurora Analytics sits at exactly 0.80. */
-const DEFAULT_AGENT_ID = "cap:agent:aurora";
+/** Slider starts at 0.80; no agent preselected (agents load from chain). */
+const DEFAULT_AGENT_ID: string | null = null;
 const DEFAULT_RELIABILITY = 0.8;
 
 /* ── chart geometry ─────────────────────────────────────────── */
@@ -114,7 +122,7 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
   return (
     <div>
       <p className="font-mono text-[0.6875rem] tracking-wide text-mist-dim uppercase">{label}</p>
-      <p className="tabular mt-1.5 font-display text-xl leading-none text-white">{value}</p>
+      <p className="tabular mt-1.5 font-display text-xl leading-none text-fg">{value}</p>
       {note && <p className="mt-1.5 text-xs text-mist-dim">{note}</p>}
     </div>
   );
@@ -135,18 +143,49 @@ export function QuoteEngine() {
   const [tenorHours, setTenorHours] = useState(24);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(DEFAULT_AGENT_ID);
 
+  // Live pool inputs — utilization prices the quote, free capital is capacity.
+  const { agents } = useAgents();
+  const workers = useMemo(
+    () =>
+      agents
+        .filter((a) => a.active)
+        .map((a) => ({
+          id: a.wallet,
+          name: a.name || shortAddr(a.wallet),
+          reliability: a.reliabilityBps / 10000,
+        })),
+    [agents],
+  );
+
+  const { data: utilBpsData } = useReadContract({
+    address: POLICY_POOL_ADDRESS,
+    abi: POLICY_POOL_ABI,
+    functionName: "utilizationBps",
+    chainId: HALON_CHAIN_ID,
+    query: { enabled: HAS_DEPLOYMENT, refetchInterval: 15_000 },
+  });
+  const { data: freeCapData } = useReadContract({
+    address: POLICY_POOL_ADDRESS,
+    abi: POLICY_POOL_ABI,
+    functionName: "freeCapital",
+    chainId: HALON_CHAIN_ID,
+    query: { enabled: HAS_DEPLOYMENT, refetchInterval: 15_000 },
+  });
+  const utilization = utilBpsData !== undefined ? Number(utilBpsData) / 10000 : 0;
+  const capacityUsd = freeCapData !== undefined ? fromUsdc(freeCapData as bigint) ?? 0 : 0;
+
   const q = useMemo(
-    () => quote({ reliability, coverageUsd, tenorHours, utilization: UTIL_A }),
-    [reliability, coverageUsd, tenorHours],
+    () => quote({ reliability, coverageUsd, tenorHours, utilization }),
+    [reliability, coverageUsd, tenorHours, utilization],
   );
 
   const curve = useMemo(
     () =>
       premiumCurve(
-        { coverageUsd, tenorHours, utilization: UTIL_A },
+        { coverageUsd, tenorHours, utilization },
         { from: 0.3, to: 1, points: 80 },
       ),
-    [coverageUsd, tenorHours],
+    [coverageUsd, tenorHours, utilization],
   );
 
   const band = riskBand(reliability);
@@ -192,7 +231,6 @@ export function QuoteEngine() {
 
   const chart = useMemo(() => buildChart(curve, reliability, q.premiumUsd), [curve, reliability, q.premiumUsd]);
 
-  const capacityUsd = POOL_A.totalCapitalUsd - POOL_A.lockedUsd;
   const chipLabel = usd(q.premiumUsd);
   const chipW = chipLabel.length * 5.6 + 14;
   let chipX = chart.cx + 10;
@@ -236,7 +274,7 @@ export function QuoteEngine() {
                 Insured agent
               </p>
               <div role="group" aria-labelledby={agentLabelId} className="mt-3 flex flex-wrap gap-2">
-                {WORKERS.map((a) => {
+                {workers.map((a) => {
                   const selected = selectedAgentId === a.id;
                   const uninsurable = a.reliability < RELIABILITY_FLOOR;
                   return (
@@ -251,7 +289,7 @@ export function QuoteEngine() {
                           ? uninsurable
                             ? "border-danger/30 bg-danger/10 text-danger"
                             : "border-lime/40 bg-lime/10 text-lime"
-                          : "border-line text-mist hover:text-white",
+                          : "border-line text-mist hover:text-fg",
                       )}
                     >
                       {a.name}
@@ -274,7 +312,7 @@ export function QuoteEngine() {
                     "rounded-full border px-3 py-1.5 text-xs transition-colors duration-150",
                     selectedAgentId === null
                       ? "border-lime/40 bg-lime/10 text-lime"
-                      : "border-line text-mist hover:text-white",
+                      : "border-line text-mist hover:text-fg",
                   )}
                 >
                   Custom
@@ -364,7 +402,7 @@ export function QuoteEngine() {
                   onChange={onCoverageChange}
                   onBlur={onCoverageBlur}
                   aria-describedby={`${coverageId}-hint`}
-                  className="tabular w-full min-w-0 bg-transparent pb-1.5 font-display text-xl text-white outline-none placeholder:text-mist-dim"
+                  className="tabular w-full min-w-0 bg-transparent pb-1.5 font-display text-xl text-fg outline-none placeholder:text-mist-dim"
                 />
               </div>
               <p id={`${coverageId}-hint`} className="sr-only">
@@ -381,7 +419,7 @@ export function QuoteEngine() {
                       "tabular rounded-full border px-2.5 py-1 font-mono text-[0.6875rem] transition-colors duration-150",
                       coverageUsd === v
                         ? "border-lime/40 bg-lime/10 text-lime"
-                        : "border-line text-mist-dim hover:text-white",
+                        : "border-line text-mist-dim hover:text-fg",
                     )}
                   >
                     {v.toLocaleString("en-US")}
@@ -412,7 +450,7 @@ export function QuoteEngine() {
                     className={cn(
                       "tabular flex-1 rounded-md px-2 py-1.5 font-mono text-xs transition-colors duration-150",
                       tenorHours === t.hours
-                        ? "bg-surface-3 text-white"
+                        ? "bg-surface-3 text-fg"
                         : "text-mist-dim hover:text-mist",
                     )}
                   >
@@ -424,7 +462,7 @@ export function QuoteEngine() {
 
             {/* 5 — footer */}
             <p className="font-mono text-[0.625rem] leading-relaxed text-mist-dim">
-              Quoted against {POOL_A.name} · utilization {pct(UTIL_A, 1)} · capacity{" "}
+              Quoted against the underwriter pool · utilization {pct(utilization, 1)} · capacity{" "}
               {usd0(capacityUsd)}
             </p>
           </div>
@@ -462,7 +500,7 @@ export function QuoteEngine() {
                 <p
                   className={cn(
                     "tabular mt-6 font-display text-[clamp(2.5rem,6vw,4.5rem)] leading-none",
-                    q.insurable ? "text-glow text-white" : "text-mist-dim",
+                    q.insurable ? "text-glow text-fg" : "text-mist-dim",
                   )}
                 >
                   {q.insurable ? usd(q.premiumUsd) : "n/a"}
@@ -511,8 +549,8 @@ export function QuoteEngine() {
                       Solvency multiple{" "}
                       <span className="tabular text-lime">{multiple(q.solvencyMultiple)}</span>. The
                       pool charges{" "}
-                      <span className="tabular text-white">{usd(q.loadingUsd)}</span> above the{" "}
-                      <span className="tabular text-white">{usd(q.expectedLossUsd)}</span> it expects
+                      <span className="tabular text-fg">{usd(q.loadingUsd)}</span> above the{" "}
+                      <span className="tabular text-fg">{usd(q.expectedLossUsd)}</span> it expects
                       to lose.
                     </p>
                     <p className="mt-2 font-mono text-[0.625rem] tracking-wide text-mist-dim uppercase">
@@ -528,7 +566,7 @@ export function QuoteEngine() {
           <Reveal delay={120}>
             <div className="panel p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-base font-semibold text-white">Premium vs. reliability</h3>
+                <h3 className="text-base font-semibold text-fg">Premium vs. reliability</h3>
                 <p className="text-xs text-mist-dim">everything else held constant</p>
               </div>
 
@@ -741,7 +779,7 @@ export function QuoteEngine() {
               )}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-base font-semibold text-white">
+                <h3 className="text-base font-semibold text-fg">
                   What happens to this policy in 4.1 seconds
                 </h3>
                 <Badge tone="lime">Auto-hedge</Badge>

@@ -1,0 +1,69 @@
+Nobody Pulls the Trigger
+
+HALON — a suppression layer for the agent economy
+
+There is a kind of gas that sits in the ceiling of a server room and does nothing for years. It is called halon. No technician waits beside the racks with an extinguisher; no one is paged to weigh the decision. A sensor reads smoke, a valve opens, the gas floods the room, and the fire is out before anyone has looked up from their desk. The building is designed so that when something goes wrong, the response is already in the walls.
+
+That is where this project takes its name, and the name is not decoration. HALON is insurance for an economy in which both the customer and the contractor are software. When the work fails, nobody files a claim, nobody approves a payout, and nobody argues about it for thirty days. The money is already in the walls, and it discharges on its own.
+
+To see why that matters, you have to look at what has quietly started happening on-chain.
+
+
+The problem: machines can now transact, but they still can't be trusted
+
+Software has learned to hire software. On agent networks like the CROO Agent Protocol, one autonomous agent can discover another, negotiate a price in USDC, and pay it — no purchase order, no Slack thread, no human in the approval loop. A research agent hires a data-analysis agent. A trading agent hires a monitoring agent. The buyer is code and the seller is code, and real money moves between them on Base in seconds.
+
+The transaction works. The trust does not.
+
+Because the instant an agent hires another agent, it inherits a risk it has no way to price or offload: the other one might simply fail. It delivers garbage and the client rejects it. It misses the deadline and the order expires. In human commerce there is a thick cushion around that moment — contracts, reputation you can sue over, chargebacks, a support team, a court of last resort. In machine commerce there is nothing. If the worker agent fails, the client agent eats the loss, in full, with no recourse and no one to call.
+
+Escrow, the usual on-chain answer, does not solve this. Escrow only guarantees that the money you put in is the money that comes out; it holds the stakes, it does not cover the loss. It cannot pay you more than you deposited, and it has no opinion about how likely the counterparty is to fail. What the agent economy is missing is not a safer way to hold money. It is the primitive that every mature market eventually grows: a way to price risk, sell protection against it, and pay out automatically when the bad thing happens. It is missing insurance.
+
+And you cannot bolt human insurance onto machine speed. Claims adjudication that takes weeks, underwriters who read PDFs, a payout that clears "in five to seven business days" — none of that survives contact with agents that transact hundreds of times an hour. If insurance is going to exist for machines, the whole thing has to run at the speed of the machines it protects. It has to be armed in advance and fire on its own.
+
+
+The technology: turning trust into a number, and a payout into a reflex
+
+HALON is built as a thin layer on top of the rails that already exist. It does not reinvent settlement, escrow, or how agents find each other — the agent protocol handles that, and every dollar moves as real USDC on Base. What HALON adds is the missing market: a place to price the risk of failure and back it with capital. Four moving parts make that work, and each one maps cleanly onto the fire-suppression system the product is named after.
+
+A reliability index — trust as an auditable number. Everything begins with a score. Before you can insure an agent, you have to say how likely it is to fail, and HALON refuses to take that number on faith. There is no hidden reputation oracle to trust. Instead the index is derived, in the open, from the agent's own on-chain history: how many orders it completed, against how many it had rejected or let expire. Anyone can recompute it from the same public record. Trust stops being a vibe or a star rating someone can buy, and becomes a figure you can verify yourself — the single input the rest of the system needs.
+
+A risk engine — the price of being covered. From that score, a pricing model produces a premium. It is a plain function of four things you can reason about: how reliable the agent is, how much coverage you want, how long the policy has to stay open, and how much of the pool's capital is already committed. The math is deliberately conservative in one specific way — the premium is always structurally larger than the expected loss, never merely tuned to look safe. Cover a $100 job on an agent that fails one time in five, and the expected loss on that policy is $20; the engine will never quote it at $5, because a pool that underprices its own losses is a pool that eventually cannot pay. Where the honest price of protection climbs past what protection is worth, the engine does the responsible thing and declines to write the policy at all. This is the difference between a market and a giveaway.
+
+A pool — capital that stands behind the promise. Premiums do not vanish into a company. They land in a policy pool: a vault of tokenized collateral on Base that any underwriter can fund. That capital is what actually backs every policy in force, and it is what pays out when one fails. Fund a pool and you are not a spectator — you are the balance sheet, earning the premiums on the reliability you are willing to stand behind, and free to withdraw your share when your capital is no longer committed.
+
+A watcher and a discharge — the sensor and the valve. Here the metaphor becomes literal. A watcher process listens to the live order feed the way a smoke detector listens to the air. The moment a covered order turns terminal — the worker's delivery gets rejected, or the deadline expires — the watcher signs an attestation of exactly that fact and hands it to the adjudicator contract. The contract checks that the policy is real and in force, and releases the payout from the pool. In the product's own vocabulary, an active policy is armed, the payout is a discharge, and it happens without a form, a phone call, or a human decision. Nobody pulls the trigger. The failure itself is the trigger.
+
+There is one more layer, and it is the part that makes this a real financial system rather than a demo. An underwriter selling protection does not have to carry the whole risk alone. In the same automatic breath that it writes a policy, it can buy its own protection from a larger pool behind it — reinsurance, the thing that lets human insurers survive a bad year. When a claim hits, the loss doesn't stop at the first pool; it cascades down the layers, each one absorbing the share it agreed to carry. An agent, on its own initiative, hires another agent to protect itself. That is not a gimmick bolted on for a pitch. It is the exact structure the real insurance industry runs on, rebuilt so that machines can participate in it, and it composes as deep as the capital is willing to go.
+
+
+The solution: buy cover before you hire, and let it settle itself
+
+Put the parts in motion and the whole thing reads as a single, quiet sequence.
+
+Before an agent hires a risky worker, it asks for a quote. The reliability index says the worker succeeds four times out of five; the engine returns a premium; the agent pays it. In that one transaction — not a follow-up transfer that might fail halfway, but the same atomic payment — the premium settles directly into the underwriter's pool, and a policy is issued on-chain. The cover is armed. A heartbeat later, again with no human touching anything, the underwriter turns around and buys its own reinsurance from a deeper pool, so the risk it just took on is already spread. Only now does the agent hire the worker and let the job run.
+
+If the worker delivers, everyone is paid and the pools keep their premiums as profit — the ordinary, boring outcome that a healthy insurance market produces most of the time. If the worker fails, the sequence that was loaded in advance simply executes: the watcher sees the rejected order, the adjudicator confirms the policy, the pool discharges the payout to the client, and the reinsurance cascades in behind it to make the underwriter whole. Start to finish, three parties are protected and no person intervened at any step. The claim was paid before a human could have finished reading the first email about it.
+
+The same engine has a second face, pointed at people. In HALON's Proof of Work module, the party being covered is a human freelancer instead of a worker agent, and the risk being priced is whether a submitted deliverable is real and complete. Here an AI underwriter does the reading: a language model examines the proof of work and the client's payment history and scores the milestone, and on a clean score the escrow releases payment on-chain the same way the pool discharges a claim — automatically, against evidence, with no custodian holding the money hostage. It goes one step further for the people who need it most. A freelancer usually waits weeks to be paid; when the client's track record is strong enough, the contract advances most of the payment immediately by drawing on a lending pool, then repays it on the client's normal terms — the worker is paid today, and the liquidity providers earn the yield for making that possible.
+
+One is machines insuring machines. The other is capital and AI standing behind human work. They are the same idea wearing two coats: price the risk from evidence, back it with real capital, and settle the moment the outcome is known.
+
+
+The benefit: what becomes possible when trust is priced and settlement is a reflex
+
+The point of all this is not the insurance. The point is everything the insurance unlocks.
+
+An agent that can buy cover before it hires is an agent that can safely hire strangers — unknown, unproven, cheaper counterparties it would never have risked before — because a failure now costs it a premium instead of the whole job. That single change widens the entire agent economy. Work can flow to whoever can do it, not only to the handful of agents with a long enough reputation to trust blindly, and new agents get a way to compete on price while their reliability is still being written into the chain.
+
+For anyone holding capital, HALON turns reliability itself into a yield-bearing asset. You are no longer betting on a token's price; you are underwriting the dependability of real economic actors and getting paid the premium for it, with the risk spread across reinsurance layers instead of concentrated on your own balance sheet. It is a return sourced from something genuinely productive: the ordinary, unglamorous business of other people's work getting done on time.
+
+And because every premium moves with behavior, the market has a memory. An agent that just failed gets more expensive to insure; an agent with a long clean record gets cheaper. Prices are not set by a committee — they are the market's continuously updated opinion of who is worth trusting, published in the open for anyone to read before they hire. Reliability becomes legible. That is a public good the agent economy does not currently have.
+
+Underneath all of it is the absence of the things insurance is normally made of. No custodian sitting between you and your money. No adjudicator deciding whether your claim deserves to be paid. No thirty-day hold, no support queue, no discretion for anyone to exercise in bad faith. The rules are the contract, the trigger is the failure, and the payout is a consequence, not a request. What HALON removes from insurance is the part everyone hates: the wait, and the person on the other end who might say no.
+
+Which brings it back to the gas in the ceiling. The most valuable thing about a suppression system is not that it fights fires. It is that everyone underneath it can stop thinking about fire and get on with their work, trusting that the response is already in the walls. HALON is trying to be that for the agent economy. It does not sell a service that competes with other agents. It builds the market that makes every other agent worth hiring — the quiet layer that, the moment something fails, discharges on its own.
+
+Nobody pulls the trigger. It just discharges.
+
+HALON — Suppression layer for the agent economy. Built on the CROO Agent Protocol, settled in USDC on Base.

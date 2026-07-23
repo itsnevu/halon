@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { DEMO_COVERAGE_USD, DEMO_QUOTE, EVENTS, PROTOCOL_STATS } from "@/lib/data";
-import { agoLabel, basescanTx, secondsLabel, shortHash, usd, usd0 } from "@/lib/format";
-import type { ChainEvent, EventKind, Severity, TxHash } from "@/lib/types";
+import { useMemo, useState } from "react";
+import { agoLabel, secondsLabel, shortAddr, usd, usd0 } from "@/lib/format";
+import type { ChainEvent, EventKind, Severity } from "@/lib/types";
+import { usePolicies } from "@/lib/use-policies";
+import { useProtocolStats } from "@/components/use-protocol-stats";
 import { cn } from "@/lib/cn";
 import { Meta, StatusDot } from "@/components/ui/badge";
 import { Reveal } from "@/components/ui/reveal";
@@ -47,7 +48,7 @@ const MOVES_MONEY: ReadonlySet<EventKind> = new Set<EventKind>([
 function amountClass(ev: ChainEvent): string {
   if (ev.kind === "order_rejected") return "text-danger";
   if (ev.severity === "good" && MOVES_MONEY.has(ev.kind)) return "text-lime";
-  return "text-white";
+  return "text-fg";
 }
 
 /** Money never gets hand-rolled — only the precision is chosen here. */
@@ -119,107 +120,51 @@ function KindIcon({ kind }: { kind: EventKind }) {
   }
 }
 
-/* ── Simulated liveness ─────────────────────────────────────── */
-
-const MAX_ROWS = 24;
-const TICK_MS = 1_000;
-const INJECT_MS = 11_000;
-const LIVE_BLOCK = 24_918_406;
-
-/** Deterministic pseudo-hex — never Math.random, so replays are identical. */
-function hex(seed: number, chars: number): string {
-  let x = seed >>> 0 || 0x9e3779b9;
-  let out = "";
-  while (out.length < chars) {
-    x ^= x << 13;
-    x >>>= 0;
-    x ^= x >>> 17;
-    x ^= x << 5;
-    x >>>= 0;
-    out += x.toString(16).padStart(8, "0");
-  }
-  return out.slice(0, chars);
-}
-
-/**
- * `agoSeconds` is negative by exactly the elapsed tick count, so that
- * `agoSeconds + elapsed === 0` on the frame it appears → "just now".
- */
-function cannedEvent(n: number, elapsed: number): ChainEvent {
-  const base = {
-    id: `live-${n}`,
-    agoSeconds: -elapsed,
-    txHash: `0x${hex(6_100 + n, 64)}` as TxHash,
-    blockNumber: LIVE_BLOCK + n,
-  };
-  switch (n % 3) {
-    case 0:
-      return {
-        ...base,
-        kind: "order_completed",
-        title: "Kite Search delivered",
-        detail: "CAP order reached terminal status `completed`. No claim. Reliability ticks up.",
-        amountUsd: 25,
-        from: "Helios Ops",
-        to: "Kite Search",
-        severity: "good",
-      };
-    case 1:
-      return {
-        ...base,
-        kind: "policy_bound",
-        title: `Policy #${1_044 + n} bound`,
-        detail:
-          "ERC-721 minted to the buyer. Premium landed in Sentinel Pool atomically, in the pay-tx.",
-        amountUsd: DEMO_QUOTE.premiumUsd,
-        from: "Vector Studio",
-        to: "Sentinel Pool",
-        severity: "good",
-      };
-    default:
-      return {
-        ...base,
-        kind: "cascade_recovery",
-        title: "Cascade recovery settled",
-        detail: "Bastion Re Pool reimbursed Sentinel Pool for its quota share. Layer under layer.",
-        amountUsd: DEMO_COVERAGE_USD * DEMO_QUOTE.cededShare,
-        from: "Bastion Re Pool",
-        to: "Sentinel Pool",
-        severity: "good",
-      };
-  }
-}
+/* ── Real events, derived from on-chain policies ────────────────
+   The feed is built entirely from the PolicyPool's bound policies — no
+   fabricated ticker. Each policy yields a bind event; discharged policies add a
+   discharge event. Ordered newest-bound first. */
 
 /* ── Component ──────────────────────────────────────────────── */
 
 export function ClaimsFeed() {
   const [filter, setFilter] = useState<FilterId>("all");
-  const [events, setEvents] = useState<ChainEvent[]>(() => EVENTS);
-  /** Starts at 0 so SSR and the first client render agree. */
-  const [elapsed, setElapsed] = useState(0);
+  const { policies, live } = usePolicies();
+  const { stats } = useProtocolStats();
 
-  const elapsedRef = useRef(0);
-  const injectedRef = useRef(0);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    const tick = window.setInterval(() => {
-      elapsedRef.current += 1;
-      setElapsed(elapsedRef.current);
-    }, TICK_MS);
-
-    const inject = window.setInterval(() => {
-      const n = injectedRef.current++;
-      const ev = cannedEvent(n, elapsedRef.current);
-      setEvents((prev) => [ev, ...prev].slice(0, MAX_ROWS));
-    }, INJECT_MS);
-
-    return () => {
-      window.clearInterval(tick);
-      window.clearInterval(inject);
-    };
-  }, []);
+  const events = useMemo<ChainEvent[]>(() => {
+    const now = Math.floor(Date.now() / 1000);
+    const out: ChainEvent[] = [];
+    for (const p of policies) {
+      const isTreaty = p.kind === "Treaty";
+      const boundAgo = Math.max(0, now - p.boundAt);
+      out.push({
+        id: `bound-${p.id}`,
+        agoSeconds: boundAgo,
+        kind: isTreaty ? "reinsurance_bound" : "policy_bound",
+        title: `Policy #${p.id} ${isTreaty ? "reinsured" : "bound"}`,
+        detail: `ERC-721 minted to ${shortAddr(p.beneficiary)}. Coverage ${usd0(p.coverageUsd)}.`,
+        amountUsd: p.premiumUsd,
+        from: shortAddr(p.beneficiary),
+        to: isTreaty ? "Reinsurer pool" : "Underwriter pool",
+        severity: "good",
+      });
+      if (p.status === "Discharged") {
+        out.push({
+          id: `disc-${p.id}`,
+          agoSeconds: boundAgo,
+          kind: "discharge",
+          title: `Policy #${p.id} discharged`,
+          detail: `Claim paid in full to ${shortAddr(p.holder)}.`,
+          amountUsd: p.coverageUsd,
+          from: "Pool",
+          to: shortAddr(p.holder),
+          severity: "bad",
+        });
+      }
+    }
+    return out.sort((a, b) => a.agoSeconds - b.agoSeconds);
+  }, [policies]);
 
   const counts = useMemo(() => {
     const out = {} as Record<FilterId, number>;
@@ -245,7 +190,7 @@ export function ClaimsFeed() {
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2.5">
                 <StatusDot tone="lime" />
-                <span className="font-mono text-xs tracking-[0.2em] text-white">LIVE</span>
+                <span className="font-mono text-xs tracking-[0.2em] text-fg">LIVE</span>
               </span>
               <span aria-hidden="true" className="h-3 w-0.5 animate-blink bg-lime" />
             </div>
@@ -269,7 +214,7 @@ export function ClaimsFeed() {
                     className={cn(
                       "flex items-center justify-between gap-3 py-1.5 pr-2 pl-3 text-left text-[0.8125rem] transition-colors",
                       active
-                        ? "border-l-2 border-lime bg-white/[0.05] text-white"
+                        ? "border-l-2 border-lime bg-white/[0.05] text-fg"
                         : "border-l border-line text-mist-dim hover:text-mist",
                     )}
                   >
@@ -282,7 +227,7 @@ export function ClaimsFeed() {
 
             <div className="space-y-2 border-t border-line-soft pt-4">
               <Meta label="Median latency">
-                {secondsLabel(PROTOCOL_STATS.medianDischargeSeconds)}
+                {stats.medianDischargeSeconds > 0 ? secondsLabel(stats.medianDischargeSeconds) : "—"}
               </Meta>
               <Meta label="Disputes">0</Meta>
             </div>
@@ -298,7 +243,11 @@ export function ClaimsFeed() {
             </div>
 
             {visible.length === 0 ? (
-              <p className="p-12 text-center text-mist-dim">No events match this filter.</p>
+              <p className="p-12 text-center text-mist-dim">
+                {live
+                  ? "No policy events yet. Bindings and discharges appear here as they happen on-chain."
+                  : "Connect a deployed PolicyPool (NEXT_PUBLIC_POLICY_POOL) to stream live events."}
+              </p>
             ) : (
               <ul className="no-scrollbar max-h-[560px] divide-y divide-line-soft overflow-y-auto">
                 {visible.map((ev) => (
@@ -319,7 +268,7 @@ export function ClaimsFeed() {
                     </span>
 
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-white">{ev.title}</p>
+                      <p className="text-sm font-medium text-fg">{ev.title}</p>
                       <p className="mt-0.5 text-[0.8125rem] leading-snug text-mist-dim text-pretty">
                         {ev.detail}
                       </p>
@@ -333,21 +282,6 @@ export function ClaimsFeed() {
                         {ev.blockNumber !== undefined && (
                           <span className="tabular">#{ev.blockNumber}</span>
                         )}
-                        {ev.txHash && (
-                          <>
-                            {(ev.from || ev.to || ev.blockNumber !== undefined) && (
-                              <span aria-hidden="true">·</span>
-                            )}
-                            <a
-                              href={basescanTx(ev.txHash)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="transition-colors hover:text-lime"
-                            >
-                              {shortHash(ev.txHash)}
-                            </a>
-                          </>
-                        )}
                       </div>
                     </div>
 
@@ -358,7 +292,7 @@ export function ClaimsFeed() {
                         </p>
                       )}
                       <p className="mt-1 font-mono text-[0.625rem] whitespace-nowrap text-mist-dim">
-                        {agoLabel(ev.agoSeconds + elapsed)}
+                        {agoLabel(ev.agoSeconds)}
                       </p>
                     </div>
                   </li>

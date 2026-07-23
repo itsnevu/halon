@@ -1,96 +1,46 @@
+"use client";
+
 import { Fragment } from "react";
 
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
-import { PROTOCOL_STATS } from "@/lib/data";
 import { secondsLabel, usdCompact } from "@/lib/format";
-import { INK, LIME, MINT } from "@/lib/brand";
-import PlasmaWave from "@/components/ui/plasma-wave";
+import { useProtocolStats } from "@/components/use-protocol-stats";
+import HyperspeedBackground from "@/components/ui/hyperspeed-background";
 
 /* ── Background ───────────────────────────────────────────────── */
-
-/**
- * Two orbs bleeding through the headline — one at each end of the brand ramp,
- * so the backdrop reads like the mark it sits under. The outer element owns the
- * position (Tailwind translate utilities) and the inner element owns the
- * `drift` animation — keyframes write `transform`, so they cannot share a node.
- *
- * `tint` is an inline colour rather than a `bg-*` class: the ramp lives in
- * `lib/brand.ts`, and hardcoding `bg-lime` here is how the two drifted apart.
- */
-function Orb({
-  className,
-  size,
-  opacity,
-  delay,
-  tint,
-}: {
-  className: string;
-  size: string;
-  opacity: number;
-  delay: string;
-  tint: string;
-}) {
-  return (
-    <div className={className} style={{ width: size, height: size }}>
-      <div
-        className="size-full animate-drift rounded-full blur-[120px]"
-        style={{ opacity, animationDelay: delay, backgroundColor: tint }}
-      />
-    </div>
-  );
-}
-
-import LottiePlayer from "@/components/ui/lottie-player";
 
 function HeroBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-      {/* Backmost layer. Transparent wherever the shader discards, so every layer
-          below still reads through it. 80% keeps it a backdrop, not a subject. */}
-      <div className="absolute inset-0 opacity-80">
-        <PlasmaWave
-          colors={[LIME, MINT]}
-          speed1={0.05}
-          speed2={0.05}
-          focalLength={0.8}
-          bend1={1}
-          bend2={0.5}
-          dir2={1}
-          rotationDeg={0}
-        />
+      {/* Backmost layer. A Hyperspeed road streaking toward the horizon —
+          lime-green under the dark theme, monochrome under the light theme.
+          Full-bleed: the road converges at centre and its lights live in the
+          lower third, so the type above it already sits over the dark fog. */}
+      <div className="absolute inset-0">
+        <HyperspeedBackground />
       </div>
 
-      {/* Lottie 3D Animation Background */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-75 mix-blend-screen scale-150 md:scale-125 lg:scale-100 mt-20">
-        <LottiePlayer animationPath="/lottie/hero.json" className="w-[800px] h-[800px]" />
-      </div>
+      {/* Everything above this line is the road; everything below is legibility.
+          Far softer than the old plasma scrim — the road's own fog keeps the
+          upper hero dark, so we only need to protect the headline band and
+          feather the road into the page at top and bottom. */}
 
-      {/* Static two-tone wash under the moving orbs: lime up-left, mint down-right. */}
-      <div className="aurora absolute inset-0 opacity-50" />
-
-      <Orb
-        className="absolute top-[34%] left-1/2 -translate-x-[78%] -translate-y-1/2"
-        size="clamp(280px, 42vw, 620px)"
-        opacity={0.16}
-        delay="0s"
-        tint={LIME}
-      />
-      <Orb
-        className="absolute top-[46%] left-1/2 -translate-x-[26%] -translate-y-1/2"
-        size="clamp(280px, 38vw, 560px)"
-        opacity={0.12}
-        delay="-7s"
-        tint={MINT}
-      />
-
-      {/* Everything above this line is decoration; everything below is legibility. */}
-      <div className="hero-scrim absolute inset-0" />
-
+      {/* Vertical wash: dim the nav strip and the very bottom, leave the road
+          brightest through the middle-lower band where it actually reads. */}
       <div
         className="absolute inset-0"
         style={{
-          background: `radial-gradient(120% 82% at 50% 34%, transparent 0%, transparent 42%, rgba(0,0,0,0.62) 76%, ${INK} 100%)`,
+          background: `linear-gradient(to bottom, var(--color-ink) 0%, transparent 22%, transparent 82%, color-mix(in srgb, var(--color-ink) 70%, transparent) 100%)`,
+        }}
+      />
+
+      {/* A gentle pool behind the headline so white type never fights a light
+          streak — a fraction of the old 88% ellipse. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(58% 44% at 50% 40%, color-mix(in srgb, var(--color-ink) 55%, transparent) 0%, transparent 72%)`,
         }}
       />
     </div>
@@ -99,18 +49,25 @@ function HeroBackdrop() {
 
 /* ── Proof row ────────────────────────────────────────────────── */
 
-const PROOF = [
-  { value: usdCompact(PROTOCOL_STATS.tvlUsd), label: "Capital at risk" },
-  { value: usdCompact(PROTOCOL_STATS.coverageInForceUsd), label: "Cover in force" },
-  { value: secondsLabel(PROTOCOL_STATS.medianDischargeSeconds), label: "Median discharge" },
-];
+/** Built inside the component from live PolicyPool reads — no fixtures. */
+function useProofRow() {
+  const { stats } = useProtocolStats();
+  return [
+    { value: usdCompact(stats.tvlUsd), label: "Capital at risk" },
+    { value: usdCompact(stats.coverageInForceUsd), label: "Cover in force" },
+    {
+      value: stats.medianDischargeSeconds > 0 ? secondsLabel(stats.medianDischargeSeconds) : "—",
+      label: "Median discharge",
+    },
+  ];
+}
 
 /* ── Chain strip ──────────────────────────────────────────────── */
 
 const CHAIN = [
-  { role: "Client", name: "Meridian Capital" },
-  { role: "Underwriter", name: "Sentinel" },
-  { role: "Reinsurer", name: "Bastion Re" },
+  { role: "Client", name: "Buys cover" },
+  { role: "Underwriter", name: "Writes cover" },
+  { role: "Reinsurer", name: "Backs the pool" },
 ];
 
 const FLOWS = ["premium", "cede"];
@@ -124,7 +81,7 @@ function ChainNode({ role, name }: { role: string; name: string }) {
           {role}
         </span>
       </div>
-      <div className="mt-1 text-sm whitespace-nowrap text-white">{name}</div>
+      <div className="mt-1 text-sm whitespace-nowrap text-fg">{name}</div>
     </div>
   );
 }
@@ -206,6 +163,7 @@ function Connector({ label }: { label: string }) {
 /* ── Hero ─────────────────────────────────────────────────────── */
 
 export function Hero() {
+  const PROOF = useProofRow();
   return (
     <section
       id="top"
@@ -215,7 +173,7 @@ export function Hero() {
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-5 text-center sm:px-8">
         <Reveal delay={80}>
-          <h1 className="text-shield font-display text-[clamp(2.6rem,8.4vw,7.5rem)] leading-[0.92] font-semibold tracking-[-0.045em] text-balance text-white">
+          <h1 className="text-shield font-display text-[clamp(2.6rem,8.4vw,7.5rem)] leading-[0.92] font-semibold tracking-[-0.045em] text-balance text-fg">
             Agents insure agents<span className="text-lime">.</span>
           </h1>
         </Reveal>
@@ -243,7 +201,7 @@ export function Hero() {
           <div className="mt-14 flex justify-center divide-x divide-line">
             {PROOF.map((stat) => (
               <div key={stat.label} className="px-3 sm:px-8 lg:px-10">
-                <div className="tabular font-display text-2xl whitespace-nowrap text-white sm:text-3xl">
+                <div className="tabular font-display text-2xl whitespace-nowrap text-fg sm:text-3xl">
                   {stat.value}
                 </div>
                 <div className="mt-1.5 font-mono text-[0.625rem] tracking-[0.16em] text-mist-dim uppercase">

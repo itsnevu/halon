@@ -14,7 +14,7 @@ import {HalonRouter} from "../src/HalonRouter.sol";
 /**
  * @title DeployTestnet
  * @notice Centralized deployment script for HALON.
- * Deploys the complete HALON V3 ecosystem to a testnet (e.g. Base Sepolia).
+ * Deploys the complete HALON V3 ecosystem to Robinhood Chain.
  */
 contract DeployTestnet is Script {
     function run() external {

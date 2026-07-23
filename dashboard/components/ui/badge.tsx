@@ -83,7 +83,7 @@ export function Meta({
       <span className="font-mono text-[0.6875rem] tracking-wide text-mist-dim uppercase">
         {label}
       </span>
-      <span className="tabular text-sm text-white">{children}</span>
+      <span className="tabular text-sm text-fg">{children}</span>
     </div>
   );
 }

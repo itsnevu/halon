@@ -49,7 +49,7 @@ export function PanelHeader({
       )}
     >
       <div className="min-w-0">
-        <h3 className="text-base font-semibold text-white">{title}</h3>
+        <h3 className="text-base font-semibold text-fg">{title}</h3>
         {hint && <p className="mt-1 text-sm text-mist-dim">{hint}</p>}
       </div>
       {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}

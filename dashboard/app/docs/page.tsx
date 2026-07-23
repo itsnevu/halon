@@ -179,12 +179,12 @@ function CodeBlock({ code, lang = "typescript" }: { code: string; lang?: string 
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div className="relative my-4 overflow-hidden rounded-xl border border-[#2B2B2B] bg-[#111111]">
-      <div className="flex items-center justify-between border-b border-[#222222] bg-[#161616] px-4 py-2">
+    <div className="relative my-4 overflow-hidden rounded-xl border border-line bg-surface-2">
+      <div className="flex items-center justify-between border-b border-line bg-surface-3 px-4 py-2">
         <span className="font-mono text-[0.7rem] uppercase tracking-wider text-[#777]">{lang}</span>
         <button
           onClick={copy}
-          className="font-mono text-[0.7rem] text-[#777] transition-colors hover:text-[#c8e63c]"
+          className="font-mono text-[0.7rem] text-[#777] transition-colors hover:text-lime"
         >
           {copied ? "Copied" : "Copy"}
         </button>
@@ -200,11 +200,11 @@ function SectionHeading({ id, kicker, title }: { id: string; kicker?: string; ti
   return (
     <div className="mb-6 scroll-mt-24" id={id}>
       {kicker && (
-        <div className="mb-2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-[#c8e63c]">
+        <div className="mb-2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-lime">
           {kicker}
         </div>
       )}
-      <h2 className="text-2xl font-medium text-white md:text-3xl">{title}</h2>
+      <h2 className="text-2xl font-medium text-fg md:text-3xl">{title}</h2>
     </div>
   );
 }
@@ -221,27 +221,27 @@ export default function DocsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] font-sans text-[#BDBDBD] overflow-x-hidden selection:bg-[#c8e63c]/30">
+    <div className="min-h-screen bg-surface font-sans text-mist overflow-x-hidden selection:bg-lime/30">
       {/* DEVELOPER HEADER */}
-      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-[#222222] bg-[#0F0F0F] px-6">
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-line bg-surface px-6">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <HalonMark eager className="h-6 w-auto" />
-            <span className="text-lg font-medium tracking-tight text-white">Developers</span>
+            <span className="text-lg font-medium tracking-tight text-fg">Developers</span>
           </Link>
         </div>
 
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-sm font-medium md:flex">
-          <a href="#top" className="text-white">Docs</a>
-          <a href="#sdk" className="transition-colors hover:text-white">API Reference</a>
-          <a href="#concepts" className="transition-colors hover:text-white">Resources</a>
+          <a href="#top" className="text-fg">Docs</a>
+          <a href="#sdk" className="transition-colors hover:text-fg">API Reference</a>
+          <a href="#concepts" className="transition-colors hover:text-fg">Resources</a>
         </nav>
 
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-[#999] transition-colors hover:text-white text-sm">
+          <Link href="/portfolio" className="text-[#999] transition-colors hover:text-fg text-sm">
             Dashboard
           </Link>
-          <Link href="/login" className="rounded-full bg-[#c8e63c] px-4 py-1.5 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90">
+          <Link href="/login" className="rounded-full bg-lime px-4 py-1.5 text-sm font-semibold text-lime-ink transition-colors hover:bg-lime/90">
             API keys
           </Link>
         </div>
@@ -250,7 +250,7 @@ export default function DocsPage() {
       {/* MAIN LAYOUT */}
       <div className="relative mx-auto flex w-full max-w-[1440px]">
         {/* SIDEBAR */}
-        <aside className="custom-scrollbar sticky top-16 hidden h-[calc(100vh-4rem)] w-[280px] shrink-0 overflow-y-auto border-r border-[#222222] p-6 lg:block">
+        <aside className="custom-scrollbar sticky top-16 hidden h-[calc(100vh-4rem)] w-[280px] shrink-0 overflow-y-auto border-r border-line p-6 lg:block">
           <div className="relative mb-8">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -258,7 +258,7 @@ export default function DocsPage() {
             <input
               type="text"
               placeholder="Search"
-              className="w-full rounded-lg border border-[#2B2B2B] bg-[#1A1A1A] py-2 pl-9 pr-8 text-sm text-white outline-none transition-colors focus:border-[#c8e63c]/50"
+              className="w-full rounded-lg border border-line bg-surface-3 py-2 pl-9 pr-8 text-sm text-fg outline-none transition-colors focus:border-lime/50"
             />
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#555]">
               /
@@ -268,11 +268,11 @@ export default function DocsPage() {
           <nav className="space-y-8">
             {NAV_GROUPS.map((group) => (
               <div key={group.title}>
-                <h3 className="mb-3 text-sm font-bold text-white">{group.title}</h3>
+                <h3 className="mb-3 text-sm font-bold text-fg">{group.title}</h3>
                 <ul className="space-y-2.5 text-sm text-[#999]">
                   {group.items.map((item) => (
                     <li key={item.href}>
-                      <a href={item.href} className="block transition-colors hover:text-[#c8e63c]">
+                      <a href={item.href} className="block transition-colors hover:text-lime">
                         {item.label}
                       </a>
                     </li>
@@ -299,7 +299,7 @@ export default function DocsPage() {
             {/* HERO */}
             <div className="mb-24 flex flex-col items-start justify-between gap-12 xl:flex-row">
               <div className="flex-1">
-                <h1 className="mb-6 text-5xl font-medium leading-[1.1] tracking-tight text-white md:text-6xl">
+                <h1 className="mb-6 text-5xl font-medium leading-[1.1] tracking-tight text-fg md:text-6xl">
                   HALON<br />Documentation
                 </h1>
                 <p className="mb-8 max-w-md text-lg text-[#999]">
@@ -309,13 +309,13 @@ export default function DocsPage() {
                 <div className="flex gap-4">
                   <a
                     href="#quick-start"
-                    className="rounded-full bg-[#c8e63c] px-6 py-3 font-medium text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90"
+                    className="rounded-full bg-lime px-6 py-3 font-medium text-lime-ink transition-colors hover:bg-lime/90"
                   >
                     Quick start
                   </a>
                   <a
                     href="#sdk"
-                    className="rounded-full bg-[#c8e63c]/10 px-6 py-3 font-medium text-[#c8e63c] transition-colors hover:bg-[#c8e63c]/20"
+                    className="rounded-full bg-lime/10 px-6 py-3 font-medium text-lime transition-colors hover:bg-lime/20"
                   >
                     SDK reference
                   </a>
@@ -323,10 +323,10 @@ export default function DocsPage() {
               </div>
 
               {/* QUICK START WIDGET */}
-              <div className="w-full shrink-0 overflow-hidden rounded-2xl border border-[#2B2B2B] bg-[#111111] shadow-2xl xl:w-[480px]">
-                <div className="flex items-center justify-between border-b border-[#2B2B2B] bg-[#161616] px-4 py-3">
-                  <span className="text-sm font-medium text-white">Quick Start</span>
-                  <button onClick={handleCopy} className="text-[#999] transition-colors hover:text-white">
+              <div className="w-full shrink-0 overflow-hidden rounded-2xl border border-line bg-surface-2 shadow-2xl xl:w-[480px]">
+                <div className="flex items-center justify-between border-b border-line bg-surface-3 px-4 py-3">
+                  <span className="text-sm font-medium text-fg">Quick Start</span>
+                  <button onClick={handleCopy} className="text-[#999] transition-colors hover:text-fg">
                     {copied ? (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c8e63c" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     ) : (
@@ -337,31 +337,31 @@ export default function DocsPage() {
                 <div className="overflow-x-auto p-6 font-mono text-sm leading-relaxed">
                   <span className="text-[#999]">npx</span> <span className="text-[#A78BFA]">skills</span>{" "}
                   <span className="text-[#60A5FA]">add</span>{" "}
-                  <span className="text-white">halon/halon-ai --skill swap-protection</span>
+                  <span className="text-fg">halon/halon-ai --skill swap-protection</span>
                 </div>
               </div>
             </div>
 
             {/* GUIDES */}
             <div className="mb-20">
-              <h2 className="mb-6 text-2xl font-medium text-white">Guides</h2>
+              <h2 className="mb-6 text-2xl font-medium text-fg">Guides</h2>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <a href="#swapping" className="group cursor-pointer rounded-2xl border border-[#26361B] bg-[#151E12] p-8 transition-colors hover:border-[#c8e63c]/50">
+                <a href="#swapping" className="group cursor-pointer rounded-2xl border border-[#26361B] bg-[#151E12] p-8 transition-colors hover:border-lime/50">
                   <div className="mb-2 flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#c8e63c]/20 text-[#c8e63c]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-lime/20 text-lime">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline></svg>
                     </div>
-                    <h3 className="text-xl font-medium text-white transition-colors group-hover:text-[#c8e63c]">Bind cover</h3>
+                    <h3 className="text-xl font-medium text-fg transition-colors group-hover:text-lime">Bind cover</h3>
                   </div>
                   <p className="ml-14 text-[#999]">Insure a worker agent in one call</p>
                 </a>
 
-                <a href="#liquidity" className="group cursor-pointer rounded-2xl border border-[#1E3A32] bg-[#0F1E1A] p-8 transition-colors hover:border-[#61e7c3]/50">
+                <a href="#liquidity" className="group cursor-pointer rounded-2xl border border-[#1E3A32] bg-[#0F1E1A] p-8 transition-colors hover:border-mint/50">
                   <div className="mb-2 flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#61e7c3]/20 text-[#61e7c3]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-mint/20 text-mint">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg>
                     </div>
-                    <h3 className="text-xl font-medium text-white transition-colors group-hover:text-[#61e7c3]">Provide liquidity</h3>
+                    <h3 className="text-xl font-medium text-fg transition-colors group-hover:text-mint">Provide liquidity</h3>
                   </div>
                   <p className="ml-14 text-[#999]">Underwrite and earn premiums</p>
                 </a>
@@ -375,12 +375,12 @@ export default function DocsPage() {
                 {`Install the SDK, authenticate with your API key, and bind your first policy. Every call is a thin wrapper over the on-chain Halon Router — no forks, no shims.`}
               </p>
 
-              <h3 className="mb-1 mt-8 text-lg font-medium text-white">1. Install</h3>
+              <h3 className="mb-1 mt-8 text-lg font-medium text-fg">1. Install</h3>
               <CodeBlock lang="bash" code={`npm install @halon/sdk
 # or wire it straight into an agent
 npx skills add halon/halon-ai --skill swap-protection`} />
 
-              <h3 className="mb-1 mt-8 text-lg font-medium text-white">2. Authenticate</h3>
+              <h3 className="mb-1 mt-8 text-lg font-medium text-fg">2. Authenticate</h3>
               <p className="max-w-2xl text-[#999] leading-relaxed">
                 {`Create a client with your API key. Set HALON_API_KEY in your environment — never hardcode it.`}
               </p>
@@ -391,7 +391,7 @@ const halon = new Halon({
   chain: "base",
 });`} />
 
-              <h3 className="mb-1 mt-8 text-lg font-medium text-white">3. Bind your first policy</h3>
+              <h3 className="mb-1 mt-8 text-lg font-medium text-fg">3. Bind your first policy</h3>
               <p className="max-w-2xl text-[#999] leading-relaxed">
                 {`Quote a premium for a worker agent, then bind and pay in one transaction.`}
               </p>
@@ -412,9 +412,9 @@ console.log(policy.status); // "bound"`} />
                 {CONCEPTS.map((c) => (
                   <div
                     key={c.title}
-                    className="rounded-2xl border border-[#222222] bg-[#141414] p-6 transition-colors hover:border-[#c8e63c]/40"
+                    className="rounded-2xl border border-line bg-surface-2 p-6 transition-colors hover:border-lime/40"
                   >
-                    <h3 className="mb-2 text-lg font-medium text-white">{c.title}</h3>
+                    <h3 className="mb-2 text-lg font-medium text-fg">{c.title}</h3>
                     <p className="text-sm leading-relaxed text-[#999]">{c.body}</p>
                   </div>
                 ))}
@@ -428,7 +428,7 @@ console.log(policy.status); // "bound"`} />
                 {`Coverage is priced, bound, and settled entirely on-chain. A client buys cover from an underwriter before hiring a worker; the underwriter immediately cedes part of that risk to a reinsurer. When the worker misses its deadline, capital moves back down the chain automatically.`}
               </p>
 
-              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="swapping">Swapping</h3>
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-fg" id="swapping">Swapping</h3>
               <p className="max-w-2xl text-[#999] leading-relaxed">
                 {`Bind cover in a single call. bindWithPremium quotes, binds, and settles the premium into the PolicyPool atomically — the premium is part of the pay-tx, not a follow-up transfer.`}
               </p>
@@ -440,7 +440,7 @@ console.log(policy.status); // "bound"`} />
   })).id,
 });`} />
 
-              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="linking">Custom linking</h3>
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-fg" id="linking">Custom linking</h3>
               <p className="max-w-2xl text-[#999] leading-relaxed">
                 {`Verify a worker's SLA outcome and adjudicate a claim from your own backend. verifySLA reads on-chain order history; a failed SLA lets you file a claim that the pool discharges without a custodian.`}
               </p>
@@ -458,7 +458,7 @@ if (!sla.met) {
                 {`Underwriters deposit into a PolicyPool, earn premiums on the cover it writes, and withdraw their share on demand. All collateral is tokenized on Base and anyone can audit the pool.`}
               </p>
 
-              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="provisioning">Liquidity provisioning</h3>
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-fg" id="provisioning">Liquidity provisioning</h3>
               <p className="max-w-2xl text-[#999] leading-relaxed">
                 {`Deposit capital to start underwriting, then claim accrued premiums without unwinding your position.`}
               </p>
@@ -470,12 +470,12 @@ if (!sla.met) {
 // later — collect earned premiums
 const y = await halon.claimYield("0xPool…");`} />
 
-              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="launchpad">Liquidity launchpad</h3>
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-fg" id="launchpad">Liquidity launchpad</h3>
               <p className="max-w-2xl text-[#999] leading-relaxed">
                 {`Bootstrap a new PolicyPool for a class of worker agents. Set the initial capital and the pool is live for binding immediately.`}
               </p>
 
-              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-white" id="halonx">HalonX</h3>
+              <h3 className="mb-1 mt-10 scroll-mt-24 text-lg font-medium text-fg" id="halonx">HalonX</h3>
               <p className="max-w-2xl text-[#999] leading-relaxed">
                 {`HalonX exposes the reinsurance layer: cede risk from one pool to another and cascade capital across layers with executeBridge on discharge.`}
               </p>
@@ -486,10 +486,10 @@ const y = await halon.claimYield("0xPool…");`} />
             <section className="mb-20">
               <div className="mb-6 flex items-baseline justify-between scroll-mt-24" id="sdk">
                 <div>
-                  <div className="mb-2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-[#c8e63c]">
+                  <div className="mb-2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-lime">
                     Reference
                   </div>
-                  <h2 className="text-2xl font-medium text-white md:text-3xl">SDK reference</h2>
+                  <h2 className="text-2xl font-medium text-fg md:text-3xl">SDK reference</h2>
                 </div>
                 <span className="hidden text-sm text-[#777] sm:block">Nine methods. No forks, no shims.</span>
               </div>
@@ -498,11 +498,11 @@ const y = await halon.claimYield("0xPool…");`} />
                 {SDK_REFERENCE.map((m) => (
                   <div
                     key={m.name}
-                    className="scroll-mt-24 overflow-hidden rounded-2xl border border-[#222222] bg-[#111111]"
+                    className="scroll-mt-24 overflow-hidden rounded-2xl border border-line bg-surface-2"
                     id={`sdk-${m.name}`}
                   >
-                    <div className="border-b border-[#1c1c1c] px-6 py-4">
-                      <code className="font-mono text-sm text-[#c8e63c]">{m.signature}</code>
+                    <div className="border-b border-line px-6 py-4">
+                      <code className="font-mono text-sm text-lime">{m.signature}</code>
                       <p className="mt-2 text-sm leading-relaxed text-[#999]">{m.desc}</p>
                     </div>
                     <div className="grid gap-6 px-6 py-5 md:grid-cols-2">
@@ -528,7 +528,7 @@ const y = await halon.claimYield("0xPool…");`} />
                         <div className="mb-2 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[#777]">
                           Example
                         </div>
-                        <pre className="overflow-x-auto rounded-lg border border-[#222222] bg-[#0d0d0d] p-4 font-mono text-[0.75rem] leading-relaxed text-[#d4d4d4]">
+                        <pre className="overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[0.75rem] leading-relaxed text-[#d4d4d4]">
                           <code>{m.example}</code>
                         </pre>
                       </div>
@@ -539,17 +539,17 @@ const y = await halon.claimYield("0xPool…");`} />
             </section>
 
             {/* NEXT STEPS */}
-            <section className="mb-16 rounded-2xl border border-[#222222] bg-[#141414] p-8">
-              <h2 className="mb-2 text-xl font-medium text-white">Ready to build?</h2>
+            <section className="mb-16 rounded-2xl border border-line bg-surface-2 p-8">
+              <h2 className="mb-2 text-xl font-medium text-fg">Ready to build?</h2>
               <p className="mb-6 max-w-lg text-sm leading-relaxed text-[#999]">
                 Grab an API key, open the dashboard to watch policies bind and discharge live, or
                 read the protocol overview.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link href="/login" className="rounded-full bg-[#c8e63c] px-5 py-2.5 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#c8e63c]/90">
+                <Link href="/login" className="rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-lime-ink transition-colors hover:bg-lime/90">
                   Get API keys
                 </Link>
-                <Link href="/" className="rounded-full border border-[#2B2B2B] px-5 py-2.5 text-sm font-medium text-[#BDBDBD] transition-colors hover:text-white">
+                <Link href="/portfolio" className="rounded-full border border-line px-5 py-2.5 text-sm font-medium text-mist transition-colors hover:text-fg">
                   Open dashboard
                 </Link>
               </div>

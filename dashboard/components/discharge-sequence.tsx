@@ -138,7 +138,7 @@ export function DischargeSequence() {
                     {step.clock}
                   </span>
 
-                  <h3 className="mt-2 text-lg text-white sm:text-xl">{step.title}</h3>
+                  <h3 className="mt-2 text-lg text-fg sm:text-xl">{step.title}</h3>
 
                   <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-mist text-pretty">
                     {step.body}
@@ -156,7 +156,7 @@ export function DischargeSequence() {
 
         <Reveal>
           <figure className="panel mt-14 border-l-2 border-l-lime p-6 sm:mt-16 sm:p-8">
-            <blockquote className="font-display text-xl leading-snug text-white text-balance sm:text-2xl">
+            <blockquote className="font-display text-xl leading-snug text-fg text-balance sm:text-2xl">
               We did not build an agent that sells a service. We built the market that makes
               every other agent worth hiring.
             </blockquote>

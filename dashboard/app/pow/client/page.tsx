@@ -5,6 +5,7 @@ import { useAccount, useWriteContract, useReadContract, useWaitForTransactionRec
 import { parseUnits, formatUnits } from "viem";
 import { ESCROW_FACTORY_ABI, ESCROW_PROJECT_ABI, ERC20_ABI } from "../../../lib/pow-abis";
 import { POW_CONFIG } from "../../../lib/pow-config";
+import { explorerTx } from "../../../lib/robinhood-chain";
 import { FlowSteps } from "@/components/ui/flow-steps";
 
 export default function ClientDashboard() {
@@ -17,8 +18,8 @@ export default function ClientDashboard() {
   const [milestoneDesc, setMilestoneDesc] = useState("Milestone #1: Frontend Mockup");
   const [milestoneAmt, setMilestoneAmt] = useState("30");
 
-  // Advance-financing opt-in (per client, UI preference)
-  const [advanceEnabled, setAdvanceEnabled] = useState(false);
+  // Inline validation feedback (replaces native alert()).
+  const [formError, setFormError] = useState<string | null>(null);
 
   const { data: hash, writeContract, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
@@ -95,7 +96,11 @@ export default function ClientDashboard() {
   };
 
   const handleDeployEscrow = async () => {
-    if (!freelancerAddress || !amountToLock) return alert("Please fill all fields");
+    if (!freelancerAddress || !amountToLock) {
+      setFormError("Enter the freelancer address and amount first.");
+      return;
+    }
+    setFormError(null);
     try {
       writeContract({
         address: POW_CONFIG.escrowFactoryAddress,
@@ -163,7 +168,7 @@ export default function ClientDashboard() {
           <div className="inline-flex items-center gap-2 rounded-full border border-lime/30 bg-lime/10 px-3 py-1 text-xs font-semibold text-lime mb-2">
             RWA ESCROW FACTORY
           </div>
-          <h1 className="font-display text-3xl md:text-4xl font-extrabold text-white">Client Portal</h1>
+          <h1 className="font-display text-3xl md:text-4xl font-extrabold text-fg">Client Portal</h1>
           <p className="text-mist text-sm mt-1">Lock collateral (Tokenized AAPL / USDG) and manage milestone releases.</p>
         </div>
 
@@ -171,8 +176,12 @@ export default function ClientDashboard() {
           <div className="neu neu-raise px-5 py-3 rounded-2xl border border-line bg-surface-2 flex items-center gap-3">
             <div className="size-2.5 rounded-full bg-lime" />
             <div>
-              <div className="text-xs text-mist font-mono uppercase">Client Credit Rating</div>
-              <div className="text-lg font-bold text-lime font-display">95 / 100 <span className="text-xs font-normal text-mist">(Prime)</span></div>
+              <div className="text-xs text-mist font-mono uppercase">Oracle Collateral Value</div>
+              <div className="text-lg font-bold text-lime font-display font-mono">
+                {collateralValueUSD !== undefined
+                  ? `$${Number(formatUnits(BigInt(collateralValueUSD), 18)).toLocaleString()}`
+                  : "—"}
+              </div>
             </div>
           </div>
         </div>
@@ -182,7 +191,7 @@ export default function ClientDashboard() {
         {/* Left Column: Escrow Form */}
         <div className="lg:col-span-7 rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold font-display text-white">Create New Escrow Project</h2>
+            <h2 className="text-xl font-bold font-display text-fg">Create New Escrow Project</h2>
             <span className="text-xs font-mono text-lime bg-lime/10 px-3 py-1 rounded-full border border-lime/20">
               Projects Count: {projectCount ? Number(projectCount) : 0}
             </span>
@@ -204,7 +213,7 @@ export default function ClientDashboard() {
                   value={freelancerAddress}
                   onChange={(e) => setFreelancerAddress(e.target.value)}
                   placeholder="0x70997970C51812dc3A010C7d01b50e0d17dc79C8" 
-                  className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-lime outline-none font-mono transition-colors" 
+                  className="w-full bg-surface border border-line rounded-2xl p-4 text-fg text-sm focus:border-lime outline-none font-mono transition-colors" 
                 />
               </div>
 
@@ -217,7 +226,7 @@ export default function ClientDashboard() {
                   <select 
                     value={tokenChoice}
                     onChange={(e) => setTokenChoice(e.target.value as "USDG" | "AAPL")}
-                    className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-lime outline-none transition-colors"
+                    className="w-full bg-surface border border-line rounded-2xl p-4 text-fg text-sm focus:border-lime outline-none transition-colors"
                   >
                     <option value="AAPL">Tokenized AAPL (RWA)</option>
                     <option value="USDG">USDG Stablecoin</option>
@@ -230,7 +239,7 @@ export default function ClientDashboard() {
                     type="number" 
                     value={amountToLock}
                     onChange={(e) => setAmountToLock(e.target.value)}
-                    className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-lime outline-none font-mono transition-colors" 
+                    className="w-full bg-surface border border-line rounded-2xl p-4 text-fg text-sm focus:border-lime outline-none font-mono transition-colors" 
                   />
                 </div>
               </div>
@@ -254,9 +263,13 @@ export default function ClientDashboard() {
                   </button>
                 )}
 
+                {formError && (
+                  <p className="mt-3 text-center text-xs text-danger">{formError}</p>
+                )}
+
                 {hash && (
                   <a
-                    href={`https://basescan.org/tx/${hash}`}
+                    href={explorerTx(hash)}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-3 block text-center text-xs text-lime underline font-mono break-all"
@@ -271,7 +284,7 @@ export default function ClientDashboard() {
           {lastProjectAddress && (
             <div className="p-4 rounded-2xl border border-line bg-surface/30 space-y-2">
               <div className="text-xs text-mist font-mono uppercase">Last Deployed Project Contract:</div>
-              <div className="text-sm font-mono text-white truncate">{lastProjectAddress}</div>
+              <div className="text-sm font-mono text-fg truncate">{lastProjectAddress}</div>
               {collateralValueUSD !== undefined && (
                 <div className="text-xs text-lime">
                   Oracle Collateral Valuation: ${Number(formatUnits(BigInt(collateralValueUSD), 18)).toLocaleString()} USD
@@ -284,7 +297,7 @@ export default function ClientDashboard() {
         {/* Right Column: Active Milestones & Financing */}
         <div className="lg:col-span-5 space-y-6">
           <div className="rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8 space-y-4">
-            <h2 className="text-xl font-bold font-display text-white">Project Milestones</h2>
+            <h2 className="text-xl font-bold font-display text-fg">Project Milestones</h2>
 
             {lastProjectAddress && (
               <FlowSteps
@@ -306,7 +319,7 @@ export default function ClientDashboard() {
                   <div className="p-5 rounded-2xl border border-line bg-surface space-y-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-bold text-white text-base">{milestone0[2]}</h4>
+                        <h4 className="font-bold text-fg text-base">{milestone0[2]}</h4>
                         <div className="text-xs text-mist mt-0.5 font-mono">Index: 0</div>
                       </div>
                       <span className="text-lime font-mono font-bold text-lg">
@@ -369,13 +382,13 @@ export default function ClientDashboard() {
                         type="text" 
                         value={milestoneDesc} 
                         onChange={(e) => setMilestoneDesc(e.target.value)} 
-                        className="w-full bg-surface border border-line rounded-xl p-3 text-xs text-white" 
+                        className="w-full bg-surface border border-line rounded-xl p-3 text-xs text-fg" 
                       />
                       <input 
                         type="number" 
                         value={milestoneAmt} 
                         onChange={(e) => setMilestoneAmt(e.target.value)} 
-                        className="w-full bg-surface border border-line rounded-xl p-3 text-xs text-white" 
+                        className="w-full bg-surface border border-line rounded-xl p-3 text-xs text-fg" 
                       />
                       <button 
                         onClick={handleAddMilestone}
@@ -392,28 +405,6 @@ export default function ClientDashboard() {
             )}
           </div>
 
-          {/* Advance Financing Option Banner */}
-          <div className="rounded-3xl border border-lime/30 bg-gradient-to-br from-lime/10 via-surface-2 to-mint/10 p-6 md:p-8 space-y-4">
-            <div className="flex items-center gap-2 text-lime font-mono text-xs font-bold uppercase tracking-wider">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              Robinhood Advance Financing
-            </div>
-            <h3 className="text-lg font-bold font-display text-white">Offer Instant 85% Upfront Payout</h3>
-            <p className="text-xs text-mist leading-relaxed">
-              Because your Client Credit Score is &gt; 80, your projects qualify for Morpho DeFi Earn Pool advance liquidity.
-            </p>
-            <button
-              onClick={() => setAdvanceEnabled((v) => !v)}
-              aria-pressed={advanceEnabled}
-              className={`w-full py-3 rounded-full text-xs font-bold transition-colors border ${
-                advanceEnabled
-                  ? "bg-lime text-lime-ink border-lime"
-                  : "bg-lime/20 border-lime/40 text-lime hover:bg-lime/30"
-              }`}
-            >
-              {advanceEnabled ? "✓ Advance Liquidity Enabled" : "Enable Advance Liquidity Option"}
-            </button>
-          </div>
         </div>
       </div>
     </div>

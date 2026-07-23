@@ -23,7 +23,7 @@ export const POPULAR_TOKENS: Token[] = [
 function DefaultTokenIcon({ symbol, color }: { symbol: string, color: string }) {
   return (
     <div 
-      className="w-9 h-9 rounded-full flex items-center justify-center text-white font-medium shadow-sm shrink-0"
+      className="w-9 h-9 rounded-full flex items-center justify-center text-fg font-medium shadow-sm shrink-0"
       style={{ backgroundColor: color }}
     >
       {symbol.charAt(0)}
@@ -71,10 +71,10 @@ export function TokenSelector({ isOpen, onClose, onSelect }: TokenSelectorProps)
         
         {/* Header */}
         <div className="flex items-center justify-between p-5 pb-4">
-          <h2 className="text-white font-medium text-lg">Select a token</h2>
+          <h2 className="text-fg font-medium text-lg">Select a token</h2>
           <button 
             onClick={onClose}
-            className="text-mist hover:text-white transition-colors"
+            className="text-mist hover:text-fg transition-colors"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
@@ -87,7 +87,7 @@ export function TokenSelector({ isOpen, onClose, onSelect }: TokenSelectorProps)
             <input 
               type="text"
               placeholder="Search tokens or paste address"
-              className="w-full bg-surface-2 border border-line rounded-xl py-3 pl-10 pr-4 text-white placeholder-mist outline-none focus:border-lime/50 transition-colors"
+              className="w-full bg-surface-2 border border-line rounded-xl py-3 pl-10 pr-4 text-fg placeholder-mist outline-none focus:border-lime/50 transition-colors"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
@@ -100,7 +100,7 @@ export function TokenSelector({ isOpen, onClose, onSelect }: TokenSelectorProps)
           {POPULAR_TOKENS.slice(0, 4).map(token => (
             <button
               key={token.symbol}
-              className="flex items-center gap-2 bg-surface-2 border border-line hover:bg-surface-3 transition-colors px-3 py-1.5 rounded-full text-sm text-white"
+              className="flex items-center gap-2 bg-surface-2 border border-line hover:bg-surface-3 transition-colors px-3 py-1.5 rounded-full text-sm text-fg"
               onClick={() => {
                 onSelect(token);
                 onClose();
@@ -132,12 +132,12 @@ export function TokenSelector({ isOpen, onClose, onSelect }: TokenSelectorProps)
                   <div className="flex items-center gap-4">
                     <DefaultTokenIcon symbol={token.symbol} color={token.color} />
                     <div className="text-left">
-                      <div className="text-white font-medium">{token.name}</div>
+                      <div className="text-fg font-medium">{token.name}</div>
                       <div className="text-sm text-mist">{token.symbol}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-white">{token.balance}</div>
+                    <div className="text-fg">{token.balance}</div>
                   </div>
                 </button>
               ))}

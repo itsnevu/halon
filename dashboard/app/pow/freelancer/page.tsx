@@ -6,6 +6,7 @@ import { formatUnits } from "viem";
 import { ESCROW_PROJECT_ABI } from "../../../lib/pow-abis";
 import { POW_CONFIG } from "../../../lib/pow-config";
 import { usePowProjects } from "../../../lib/use-pow-projects";
+import { explorerTx } from "../../../lib/robinhood-chain";
 import { FlowSteps } from "@/components/ui/flow-steps";
 
 export default function FreelancerDashboard() {
@@ -13,6 +14,10 @@ export default function FreelancerDashboard() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "analyzing" | "approved" | "rejected">("idle");
   const [aiScore, setAiScore] = useState<number | null>(null);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiRedFlags, setAiRedFlags] = useState<string[]>([]);
+  const [aiEngine, setAiEngine] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Every escrow where the connected wallet is the freelancer.
   const { projects, isLoading: projectsLoading } = usePowProjects("freelancer");
@@ -59,8 +64,15 @@ export default function FreelancerDashboard() {
   const showResult = status === "approved" || status === "rejected" || aiApproved;
 
   const handleUpload = async () => {
-    if (!file) return alert("Please select a file first");
-    if (!projectAddr) return alert("No active project escrow selected.");
+    if (!file) {
+      setUploadError("Select a file first.");
+      return;
+    }
+    if (!projectAddr) {
+      setUploadError("No active project escrow selected.");
+      return;
+    }
+    setUploadError(null);
 
     setStatus("uploading");
 
@@ -68,9 +80,9 @@ export default function FreelancerDashboard() {
     formData.append("project_address", projectAddr);
     formData.append("file", file);
     formData.append("milestone_id", milestoneId.toString());
-    // Client reputation is derived server-side / on-chain; these are placeholders.
-    formData.append("client_disputes", "0");
-    formData.append("client_late_days", "0");
+    // Client dispute / lateness history is not recorded on-chain, so we send
+    // nothing rather than a fabricated value — the backend defaults these to a
+    // neutral 0 and scores purely on the submitted work.
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60_000);
@@ -84,6 +96,9 @@ export default function FreelancerDashboard() {
       if (!response.ok) throw new Error(`Backend returned ${response.status}`);
       const result = await response.json();
       setAiScore(typeof result.ai_score === "number" ? result.ai_score : null);
+      setAiSummary(typeof result.ai_summary === "string" ? result.ai_summary : null);
+      setAiRedFlags(Array.isArray(result.ai_red_flags) ? result.ai_red_flags : []);
+      setAiEngine(typeof result.ai_engine === "string" ? result.ai_engine : null);
 
       if (result.status === "approved_on_chain") {
         setStatus("approved");
@@ -94,7 +109,7 @@ export default function FreelancerDashboard() {
     } catch (e) {
       console.error(e);
       setStatus("idle");
-      alert("AI Backend request failed. Is the FastAPI server reachable?");
+      setUploadError("AI backend request failed. Is the FastAPI server reachable?");
     } finally {
       clearTimeout(timeout);
     }
@@ -123,7 +138,7 @@ export default function FreelancerDashboard() {
           <div className="inline-flex items-center gap-2 rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-xs font-semibold text-mint mb-2">
             AI WORK VERIFIER & PAYOUT
           </div>
-          <h1 className="font-display text-3xl md:text-4xl font-extrabold text-white">Freelancer Portal</h1>
+          <h1 className="font-display text-3xl md:text-4xl font-extrabold text-fg">Freelancer Portal</h1>
           <p className="text-mist text-sm mt-1">Upload proof of work for automated LLM scoring and instant payout release.</p>
         </div>
 
@@ -151,9 +166,12 @@ export default function FreelancerDashboard() {
               setMilestoneId(0);
               setStatus("idle");
               setAiScore(null);
+              setAiSummary(null);
+              setAiRedFlags([]);
+              setAiEngine(null);
             }}
             disabled={projects.length === 0}
-            className="w-full rounded-2xl border border-line bg-surface-2 px-4 py-3 text-sm text-white font-mono disabled:opacity-40"
+            className="w-full rounded-2xl border border-line bg-surface-2 px-4 py-3 text-sm text-fg font-mono disabled:opacity-40"
           >
             {projects.length === 0 ? (
               <option value="">
@@ -177,9 +195,12 @@ export default function FreelancerDashboard() {
               setMilestoneId(Number(e.target.value));
               setStatus("idle");
               setAiScore(null);
+              setAiSummary(null);
+              setAiRedFlags([]);
+              setAiEngine(null);
             }}
             disabled={!projectAddr || milestoneCount === 0}
-            className="w-full rounded-2xl border border-line bg-surface-2 px-4 py-3 text-sm text-white font-mono disabled:opacity-40"
+            className="w-full rounded-2xl border border-line bg-surface-2 px-4 py-3 text-sm text-fg font-mono disabled:opacity-40"
           >
             {milestoneOptions.map((i) => (
               <option key={i} value={i}>
@@ -217,7 +238,7 @@ export default function FreelancerDashboard() {
         {/* Left Column: Upload Work Proof */}
         <div className="lg:col-span-7 rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold font-display text-white">Submit Work Proof</h2>
+            <h2 className="text-xl font-bold font-display text-fg">Submit Work Proof</h2>
             <span className="text-xs font-mono text-mint bg-mint/10 px-3 py-1 rounded-full border border-mint/20">
               {projectAddr ? `Active: ${projectAddr.slice(0, 8)}… · M#${milestoneId}` : "No Project Selected"}
             </span>
@@ -248,14 +269,14 @@ export default function FreelancerDashboard() {
                   </svg>
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-white">Upload Document / Invoice / Code Archive</h4>
+                  <h4 className="text-base font-bold text-fg">Upload Document / Invoice / Code Archive</h4>
                   <p className="text-xs text-mist mt-1">PDF, PNG, JPG, or TXT formats supported for AI OCR.</p>
                 </div>
 
                 <input
                   type="file"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="block w-full text-xs text-mist file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-surface-3 file:text-white hover:file:bg-surface cursor-pointer"
+                  className="block w-full text-xs text-mist file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-surface-3 file:text-fg hover:file:bg-surface cursor-pointer"
                 />
 
                 <button
@@ -265,6 +286,8 @@ export default function FreelancerDashboard() {
                 >
                   {status === "idle" ? "Upload Work & Run AI Verification" : "AI Agent Processing..."}
                 </button>
+
+                {uploadError && <p className="text-xs text-danger">{uploadError}</p>}
               </div>
             )}
           </div>
@@ -273,7 +296,7 @@ export default function FreelancerDashboard() {
         {/* Right Column: AI Risk Meter & Payout Claim */}
         <div className="lg:col-span-5 space-y-6">
           <div className="rounded-3xl neu neu-raise border border-line bg-surface-2 p-6 md:p-8 space-y-6">
-            <h2 className="text-xl font-bold font-display text-white">AI Telemetry & Verification</h2>
+            <h2 className="text-xl font-bold font-display text-fg">AI Telemetry & Verification</h2>
 
             {aiScore === null && !aiApproved ? (
               <div className="flex flex-col items-center justify-center h-48 border border-line/60 rounded-2xl bg-surface/30 text-center p-6 space-y-3">
@@ -303,11 +326,21 @@ export default function FreelancerDashboard() {
 
                 {showApproved && (
                   <div className="space-y-4">
-                    <div className="space-y-2 text-xs text-mist border-l-2 border-mint pl-4 py-1">
-                      <div className="text-white font-semibold">✅ Document OCR parsed cleanly</div>
-                      <div>✅ No duplicate submission detected</div>
-                      <div>✅ Client credit score verified (&gt;80)</div>
-                    </div>
+                    {(aiSummary || aiRedFlags.length > 0 || aiEngine) && (
+                      <div className="space-y-2 text-xs text-mist border-l-2 border-mint pl-4 py-1">
+                        {aiSummary && <div className="text-fg font-semibold">{aiSummary}</div>}
+                        {aiRedFlags.length === 0 ? (
+                          <div>No red flags detected by the AI verifier.</div>
+                        ) : (
+                          aiRedFlags.map((flag, i) => (
+                            <div key={i} className="text-danger">⚠ {flag}</div>
+                          ))
+                        )}
+                        {aiEngine && (
+                          <div className="font-mono text-mist-dim">Engine: {aiEngine}</div>
+                        )}
+                      </div>
+                    )}
 
                     <button
                       onClick={handleClaim}
@@ -328,7 +361,7 @@ export default function FreelancerDashboard() {
 
                     {hash && (
                       <a
-                        href={`https://basescan.org/tx/${hash}`}
+                        href={explorerTx(hash)}
                         target="_blank"
                         rel="noreferrer"
                         className="block text-center text-xs text-lime underline font-mono break-all"

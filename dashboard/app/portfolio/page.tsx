@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/cta-footer";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useAccount,
   useBalance,
@@ -17,6 +18,8 @@ import { cn } from "@/lib/cn";
 import { formatUnits, parseEther, isAddress } from "viem";
 import { ERC20_ABI } from "@/lib/pow-abis";
 import { POW_CONFIG } from "@/lib/pow-config";
+import { AGGREGATOR_V3_ABI } from "@/lib/onchain";
+import { explorerTx } from "@/lib/robinhood-chain";
 
 const TABS = ["Overview", "Tokens", "NFTs", "Activity"] as const;
 type Tab = (typeof TABS)[number];
@@ -31,7 +34,8 @@ export default function PortfolioPage() {
   const [modal, setModal] = useState<null | "send" | "receive">(null);
 
   // Live ETH price + 24h change (CoinGecko, public/no-key).
-  const [ethPrice, setEthPrice] = useState(3400);
+  // 0 until the live price resolves — never a fabricated default.
+  const [ethPrice, setEthPrice] = useState(0);
   const [ethChange, setEthChange] = useState(0);
   useEffect(() => {
     let alive = true;
@@ -70,11 +74,27 @@ export default function PortfolioPage() {
     query: { enabled: !!address }
   });
 
+  // Live AAPL stock-token price from the Chainlink feed (Robinhood Chain has a
+  // real per-token, multiplier-adjusted feed). No hardcoded price.
+  const { data: aaplRound } = useReadContract({
+    address: POW_CONFIG.mockOracleAddress,
+    abi: AGGREGATOR_V3_ABI,
+    functionName: "latestRoundData",
+  });
+  const { data: aaplFeedDecimals } = useReadContract({
+    address: POW_CONFIG.mockOracleAddress,
+    abi: AGGREGATOR_V3_ABI,
+    functionName: "decimals",
+  });
+
   // Token amounts held.
   const usdgAmt = usdgBalance ? Number(formatUnits(usdgBalance, 18)) : 0;
   const aaplAmt = aaplBalance ? Number(formatUnits(aaplBalance, 18)) : 0;
   const ethAmt = balance ? Number(formatUnits(balance.value, balance.decimals)) : 0;
-  const AAPL_PRICE = 150; // tokenized mock — no public market feed
+  const AAPL_PRICE =
+    aaplRound && aaplFeedDecimals !== undefined
+      ? Number(aaplRound[1]) / 10 ** Number(aaplFeedDecimals)
+      : 0;
 
   const ethValue = ethAmt * ethPrice;
   const totalValueNum = usdgAmt + aaplAmt * AAPL_PRICE + ethValue;
@@ -139,16 +159,16 @@ export default function PortfolioPage() {
       {realTokens.map((token, i) => (
         <div key={i} className="flex items-center justify-between p-4 bg-surface-2 rounded-2xl hover:bg-surface-3 transition-colors">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: token.color }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-fg font-medium" style={{ backgroundColor: token.color }}>
               {token.symbol.charAt(0)}
             </div>
             <div>
-              <div className="text-white font-medium">{token.name}</div>
+              <div className="text-fg font-medium">{token.name}</div>
               <div className="text-mist text-sm">{token.balance} {token.symbol}</div>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-white font-medium">{token.value}</div>
+            <div className="text-fg font-medium">{token.value}</div>
             <div className={cn("text-sm", token.isPos ? "text-lime" : "text-danger")}>
               {token.change}
             </div>
@@ -179,7 +199,7 @@ export default function PortfolioPage() {
                 <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="4" /></svg>
               </div>
 
-              <h2 className="text-2xl md:text-3xl font-medium text-white mb-6 relative z-10 text-center">
+              <h2 className="text-2xl md:text-3xl font-medium text-fg mb-6 relative z-10 text-center">
                 Connect a wallet to view your portfolio
               </h2>
 
@@ -200,7 +220,7 @@ export default function PortfolioPage() {
                   <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-lime to-emerald-400 flex items-center justify-center border-2 border-surface">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                   </div>
-                  <h1 className="text-2xl font-medium text-white">
+                  <h1 className="text-2xl font-medium text-fg">
                     {ensName || (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Demo wallet")}
                   </h1>
                 </div>
@@ -208,7 +228,7 @@ export default function PortfolioPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setOpen(true)}
-                    className="flex items-center gap-2 bg-surface-2 border border-line rounded-full px-4 py-2 hover:bg-surface-3 transition-colors text-sm font-medium text-white"
+                    className="flex items-center gap-2 bg-surface-2 border border-line rounded-full px-4 py-2 hover:bg-surface-3 transition-colors text-sm font-medium text-fg"
                   >
                     <div className="flex -space-x-1">
                       <div className="w-4 h-4 rounded-full bg-blue-500"></div>
@@ -230,8 +250,8 @@ export default function PortfolioPage() {
                     className={cn(
                       "font-medium pb-2 transition-colors",
                       activeTab === tab
-                        ? "text-white border-b-2 border-white"
-                        : "text-mist hover:text-white",
+                        ? "text-fg border-b-2 border-white"
+                        : "text-mist hover:text-fg",
                     )}
                   >
                     {tab}
@@ -241,7 +261,7 @@ export default function PortfolioPage() {
 
               {activeTab === "NFTs" || activeTab === "Activity" ? (
                 <div className="border border-dashed border-line rounded-2xl py-20 text-center text-mist bg-surface-2/40">
-                  <div className="text-sm font-medium text-white mb-1">No {activeTab.toLowerCase()} to show</div>
+                  <div className="text-sm font-medium text-fg mb-1">No {activeTab.toLowerCase()} to show</div>
                   <div className="text-xs">Your {activeTab.toLowerCase()} will appear here once indexed on-chain.</div>
                 </div>
               ) : activeTab === "Tokens" ? (
@@ -253,10 +273,21 @@ export default function PortfolioPage() {
                 {/* Left Column: Balance & Chart */}
                 <div className="md:col-span-2 space-y-6">
                   <div>
-                    <h2 className="text-4xl sm:text-5xl font-display text-white mb-2 break-words">${totalValueStr}</h2>
-                    <div className={cn("flex items-center gap-2 font-medium", todayPos ? "text-lime" : "text-danger")}>
-                      {todayPos ? "▲" : "▼"} ${Math.abs(todayDelta).toFixed(2)} ({Math.abs(todayPct).toFixed(2)}%) today
-                    </div>
+                    {balance === undefined ? (
+                      <>
+                        <Skeleton className="mb-2 h-12 w-48 sm:h-14" />
+                        <Skeleton className="h-5 w-32" />
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-4xl sm:text-5xl font-display text-fg mb-2 break-words">
+                          ${totalValueStr}
+                        </h2>
+                        <div className={cn("flex items-center gap-2 font-medium", todayPos ? "text-lime" : "text-danger")}>
+                          {todayPos ? "▲" : "▼"} ${Math.abs(todayDelta).toFixed(2)} ({Math.abs(todayPct).toFixed(2)}%) today
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Allocation — a donut of real holdings (no fabricated price chart). */}
@@ -299,7 +330,7 @@ export default function PortfolioPage() {
                             <span className="font-mono text-[0.625rem] uppercase tracking-wider text-mist">
                               Total
                             </span>
-                            <span className="font-display text-lg tabular-nums text-white">
+                            <span className="font-display text-lg tabular-nums text-fg">
                               ${totalValueStr}
                             </span>
                           </div>
@@ -314,11 +345,11 @@ export default function PortfolioPage() {
                                   className="size-2.5 shrink-0 rounded-full"
                                   style={{ backgroundColor: seg.color }}
                                 />
-                                <span className="font-medium text-white">{seg.symbol}</span>
+                                <span className="font-medium text-fg">{seg.symbol}</span>
                               </div>
                               <div className="flex items-center gap-3 text-sm">
                                 <span className="tabular-nums text-mist">{(seg.frac * 100).toFixed(1)}%</span>
-                                <span className="tabular-nums text-white">
+                                <span className="tabular-nums text-fg">
                                   ${seg.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                                 </span>
                               </div>
@@ -335,7 +366,7 @@ export default function PortfolioPage() {
 
                   {/* Tokens List */}
                   <div className="mt-8">
-                    <h3 className="text-xl font-medium text-white mb-4">Tokens</h3>
+                    <h3 className="text-xl font-medium text-fg mb-4">Tokens</h3>
                     {TokensList}
                   </div>
                 </div>
@@ -350,7 +381,7 @@ export default function PortfolioPage() {
                       <div className="w-12 h-12 rounded-full bg-ink flex items-center justify-center text-lime group-hover:scale-110 transition-transform">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                       </div>
-                      <span className="text-white font-medium text-lg">Send</span>
+                      <span className="text-fg font-medium text-lg">Send</span>
                     </button>
 
                     <button
@@ -360,7 +391,7 @@ export default function PortfolioPage() {
                       <div className="w-12 h-12 rounded-full bg-ink flex items-center justify-center text-lime group-hover:scale-110 transition-transform">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6M12 4v12M8 12l4 4 4-4"/></svg>
                       </div>
-                      <span className="text-white font-medium text-lg">Receive</span>
+                      <span className="text-fg font-medium text-lg">Receive</span>
                     </button>
                   </div>
 
@@ -446,8 +477,8 @@ function WalletModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-medium text-white">{mode === "send" ? "Send ETH" : "Receive"}</h2>
-          <button onClick={onClose} className="text-mist hover:text-white transition-colors" aria-label="Close">
+          <h2 className="text-xl font-medium text-fg">{mode === "send" ? "Send ETH" : "Receive"}</h2>
+          <button onClick={onClose} className="text-mist hover:text-fg transition-colors" aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
@@ -455,10 +486,10 @@ function WalletModal({
         {mode === "receive" ? (
           <div className="space-y-4">
             <p className="text-sm text-mist">Your wallet address on {" "}
-              <span className="text-white">Base</span>. Share it to receive tokens.
+              <span className="text-fg">Base</span>. Share it to receive tokens.
             </p>
             <div className="flex items-center gap-2 rounded-2xl border border-line bg-surface p-4">
-              <span className="font-mono text-sm text-white break-all">{address}</span>
+              <span className="font-mono text-sm text-fg break-all">{address}</span>
             </div>
             <button
               onClick={copyAddress}
@@ -475,7 +506,7 @@ function WalletModal({
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
                 placeholder="0x…"
-                className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm font-mono outline-none focus:border-lime transition-colors"
+                className="w-full bg-surface border border-line rounded-2xl p-4 text-fg text-sm font-mono outline-none focus:border-lime transition-colors"
               />
               {to && !validTo && <p className="mt-1 text-xs text-danger">Not a valid address.</p>}
             </div>
@@ -486,7 +517,7 @@ function WalletModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.0"
-                className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm font-mono outline-none focus:border-lime transition-colors"
+                className="w-full bg-surface border border-line rounded-2xl p-4 text-fg text-sm font-mono outline-none focus:border-lime transition-colors"
               />
             </div>
 
@@ -501,7 +532,7 @@ function WalletModal({
             {error && <p className="text-xs text-danger break-words">{error.message.split("\n")[0]}</p>}
             {hash && (
               <a
-                href={`https://basescan.org/tx/${hash}`}
+                href={explorerTx(hash)}
                 target="_blank"
                 rel="noreferrer"
                 className="block text-center text-xs text-lime underline font-mono break-all"

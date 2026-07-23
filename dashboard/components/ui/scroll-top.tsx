@@ -41,7 +41,7 @@ export function ScrollTop() {
         // than no button at all.
         tabIndex={shown ? 0 : -1}
         onClick={() => window.scrollTo({ top: 0 })}
-        className="neu neu-raise grid size-11 cursor-pointer place-items-center rounded-full border border-line text-mist hover:border-lime/40 hover:text-white"
+        className="neu neu-raise grid size-11 cursor-pointer place-items-center rounded-full border border-line text-mist hover:border-lime/40 hover:text-fg"
       >
         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-4">
           <path

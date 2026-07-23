@@ -51,7 +51,7 @@ function TrustlessCard() {
       <div>
         <Badge tone="lime">Trustless</Badge>
       </div>
-      <h3 className="text-xl text-white">Capital is real</h3>
+      <h3 className="text-xl text-fg">Capital is real</h3>
       <CardBody>
         Premiums and payouts are USDC on Base. PolicyPool holds it, ClaimsAdjudicator moves it,
         and both are ordinary verifiable contracts. Nothing is simulated and nothing is custodied
@@ -84,7 +84,7 @@ function InheritedCard() {
       <div>
         <Badge tone="lime">Inherited</Badge>
       </div>
-      <h3 className="text-xl text-white">
+      <h3 className="text-xl text-fg">
         Failure is CAP&rsquo;s own word
       </h3>
       <CardBody>
@@ -126,7 +126,7 @@ function OracleCard() {
       <div>
         <Badge tone="warn">Trusted for now</Badge>
       </div>
-      <h3 className="text-xl text-white">The watcher is an oracle</h3>
+      <h3 className="text-xl text-fg">The watcher is an oracle</h3>
       <CardBody>
         For this build, one off-chain watcher signs the EIP-712 attestation that says
         &ldquo;order X is rejected&rdquo;. If it lies, it can trigger a payout. That is a real
@@ -179,7 +179,7 @@ function AntiSybil() {
               <dt className="font-mono text-[0.625rem] tracking-wide text-mist-dim uppercase whitespace-nowrap">
                 {s.label}
               </dt>
-              <dd className="tabular font-display text-xl text-white">{s.value}</dd>
+              <dd className="tabular font-display text-xl text-fg">{s.value}</dd>
             </div>
           ))}
         </dl>

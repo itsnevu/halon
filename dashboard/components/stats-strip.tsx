@@ -18,14 +18,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { POOL_B } from "@/lib/data";
 import { pct, secondsLabel } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { LIME } from "@/lib/brand";
 import { CountUp } from "@/components/ui/count-up";
 import { Reveal } from "@/components/ui/reveal";
-import { Sparkline } from "@/components/ui/sparkline";
 import { useProtocolStats } from "@/components/use-protocol-stats";
+import { useAgents } from "@/lib/use-agents";
 
 function Cell({
   label,
@@ -48,7 +46,7 @@ function Cell({
         <div
           className={cn(
             "font-display text-[1.75rem] leading-none tabular sm:text-[2rem]",
-            danger ? "text-danger" : "text-white",
+            danger ? "text-danger" : "text-fg",
           )}
         >
           {children}
@@ -73,6 +71,8 @@ function Dot() {
 
 export function StatsStrip() {
   const { stats, live } = useProtocolStats();
+  const { agents } = useAgents();
+  const activeAgents = agents.filter((a) => a.active).length;
   /** Fraction of a cell's bar to fill — clamped so a >100% loss ratio can't overflow. */
   const lossBarWidth = pct(Math.min(1, Math.max(0, stats.lossRatio)), 1);
 
@@ -98,20 +98,7 @@ export function StatsStrip() {
         </div>
         <div className="panel overflow-hidden">
           <dl className="-mt-px -ml-px grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-            <Cell
-              label="Total value locked"
-              sub={
-                <Sparkline
-                  data={POOL_B.history}
-                  width={220}
-                  height={32}
-                  stroke={LIME}
-                  fill
-                  id="tvl"
-                  className="h-8 w-full"
-                />
-              }
-            >
+            <Cell label="Total value locked">
               <CountUp value={stats.tvlUsd} preset="usdCompact" />
             </Cell>
 
@@ -131,7 +118,7 @@ export function StatsStrip() {
               label="Median discharge"
               sub={<SubLine>From failure to payout</SubLine>}
             >
-              {secondsLabel(stats.medianDischargeSeconds)}
+              {stats.medianDischargeSeconds > 0 ? secondsLabel(stats.medianDischargeSeconds) : "—"}
             </Cell>
 
             <Cell
@@ -157,11 +144,9 @@ export function StatsStrip() {
       </Reveal>
 
       <p className="mt-6 text-center font-mono text-[0.6875rem] text-mist-dim">
-        <span className="tabular">{stats.uniqueBuyers}</span> unique buyer wallets
+        <span className="tabular">{activeAgents}</span> agents registered
         <Dot />
-        <span className="tabular">{stats.agentsInsured}</span> agents insured
-        <Dot />
-        <span className="tabular">3</span> counterparties
+        <span className="tabular">{stats.activePolicies}</span> policies written
       </p>
     </section>
   );

@@ -16,10 +16,10 @@ export default function LoginPage() {
       {/* Login Card */}
       <div className="w-full max-w-md panel p-8 md:p-10 z-10 neu-raise flex flex-col items-center">
         
-        <HalonWordmark className="h-8 w-auto text-white mb-8" />
+        <HalonWordmark className="h-8 w-auto text-fg mb-8" />
         
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-display text-white mb-2 tracking-tight">Welcome Back</h1>
+          <h1 className="text-2xl font-display text-fg mb-2 tracking-tight">Welcome Back</h1>
           <p className="text-mist text-sm">Sign in to manage your HALON liquidity and access the suppression layer.</p>
         </div>
 
@@ -42,7 +42,7 @@ export default function LoginPage() {
           <ButtonLink 
             href="/" 
             variant="ghost" 
-            className="w-full h-12 flex items-center justify-center rounded-full text-mist hover:text-white transition-colors border border-line bg-surface-2 hover:bg-surface-3"
+            className="w-full h-12 flex items-center justify-center rounded-full text-mist hover:text-fg transition-colors border border-line bg-surface-2 hover:bg-surface-3"
           >
             ← Back to Home
           </ButtonLink>

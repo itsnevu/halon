@@ -9,12 +9,16 @@ contract EscrowFactory {
     using SafeERC20 for IERC20;
 
     address public aiAgent; // Authorized relayer for AI
+    address public sequencerUptimeFeed; // Chainlink L2 sequencer feed (chain-wide)
+    uint256 public defaultPriceMaxAge; // Default oracle staleness window (seconds)
     EscrowProject[] public deployedProjects;
 
     event ProjectCreated(address indexed projectAddress, address indexed client, address indexed freelancer, uint256 amount);
 
-    constructor(address _aiAgent) {
+    constructor(address _aiAgent, address _sequencerUptimeFeed, uint256 _defaultPriceMaxAge) {
         aiAgent = _aiAgent;
+        sequencerUptimeFeed = _sequencerUptimeFeed;
+        defaultPriceMaxAge = _defaultPriceMaxAge == 0 ? 1 hours : _defaultPriceMaxAge;
     }
 
     function createProject(
@@ -29,7 +33,9 @@ contract EscrowFactory {
             aiAgent,
             collateralToken,
             priceOracle,
-            totalAmount
+            totalAmount,
+            sequencerUptimeFeed,
+            defaultPriceMaxAge
         );
 
         // Transfer collateral from client to the new project contract

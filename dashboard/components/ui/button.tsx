@@ -11,8 +11,8 @@ const base =
 const variants: Record<Variant, string> = {
   primary:
     "bg-lime text-lime-ink hover:bg-lime-soft glow-lime-sm hover:shadow-[0_0_36px_-6px_rgba(200,230,60,0.9)]",
-  ghost: "neu neu-raise border border-line text-white hover:border-lime/40",
-  subtle: "text-mist hover:text-white",
+  ghost: "neu neu-raise border border-line text-fg hover:border-lime/40",
+  subtle: "text-mist hover:text-fg",
 };
 
 const sizes: Record<Size, string> = {
@@ -34,7 +34,7 @@ function ArrowBadge({ variant }: { variant: Variant }) {
       aria-hidden="true"
       className={cn(
         "ml-2 grid size-10 place-items-center rounded-full transition-transform duration-200 group-hover:translate-x-0.5",
-        variant === "primary" ? "bg-lime-ink text-lime" : "bg-white/10 text-white",
+        variant === "primary" ? "bg-lime-ink text-lime" : "bg-white/10 text-fg",
       )}
     >
       <svg viewBox="0 0 16 16" fill="none" className="size-4">

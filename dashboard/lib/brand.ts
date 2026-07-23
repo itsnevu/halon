@@ -54,13 +54,18 @@ export function mintAlpha(a: number): string {
    of six. Mirrors `--color-ink / --color-surface / --color-line / …`.
    ─────────────────────────────────────────────────────────────────────── */
 
-/** The canvas. Black is black. */
-export const INK = "#000000";
+/* These now resolve to the page's own CSS tokens (via `var()`) so they flip
+   with the light/dark theme. They are only ever used in SVG fill/stroke and
+   JS-assembled `linear-gradient()`s — never fed to a WebGL/canvas shader, which
+   is the one place a literal hex is still required (see LIME/MINT above). */
+
+/** The canvas. */
+export const INK = "var(--color-ink)";
 /** First surface off the canvas. */
-export const SURFACE = "#0b0e0a";
+export const SURFACE = "var(--color-surface)";
 /** Default hairline. */
-export const LINE = "#1e2a1c";
+export const LINE = "var(--color-line)";
 /** Hairline for grids and rules that must recede. */
-export const LINE_SOFT = "#141b13";
+export const LINE_SOFT = "var(--color-line-soft)";
 /** Muted type — axis labels, secondary glyphs. */
-export const MIST_DIM = "#6a756a";
+export const MIST_DIM = "var(--color-mist-dim)";

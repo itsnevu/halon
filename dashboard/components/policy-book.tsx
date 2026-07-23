@@ -1,43 +1,66 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { POLICIES, agentById } from "@/lib/data";
-import { agoLabel, basescanTx, durationLabel, pct, shortHash, usd, usd0 } from "@/lib/format";
+import { agoLabel, explorerAddr, durationLabel, pct, shortHash, usd, usd0 } from "@/lib/format";
+import { shortAddr } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import type { Policy, PolicyStatus } from "@/lib/types";
-import { Badge, Meta, type Tone } from "@/components/ui/badge";
+import type { Tone } from "@/components/ui/badge";
+import { Badge, Meta } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { SectionArt } from "@/components/ui/section-art";
 import iconLayers from "@/public/icon-layers.png";
 import artPolicyStack from "@/public/art-policy-stack.png";
 import { Reveal } from "@/components/ui/reveal";
+import { usePolicies, type OnchainPolicy } from "@/lib/use-policies";
 
 /* ── status → badge ─────────────────────────────────────────────
-   Red is reserved for discharge. A settled or expired policy is not a
-   failure — it simply ran its course, so it goes grayscale. */
+   Red is reserved for discharge. A settled policy ran its course, so it goes
+   grayscale. Statuses come straight from the on-chain Policy.status enum. */
 
-const STATUS: Record<PolicyStatus, { tone: Tone; label: string; dot: boolean }> = {
+type UiStatus = "active" | "discharged" | "settled" | "none";
+
+const STATUS: Record<UiStatus, { tone: Tone; label: string; dot: boolean }> = {
   active: { tone: "lime", label: "In force", dot: true },
   discharged: { tone: "danger", label: "Discharged", dot: true },
   settled: { tone: "neutral", label: "Settled", dot: false },
-  expired: { tone: "neutral", label: "Expired", dot: false },
+  none: { tone: "neutral", label: "—", dot: false },
 };
 
-/* ── rollup, computed once at module scope — all pure, safe during SSR ── */
-
-const IN_FORCE = POLICIES.filter((p) => p.status === "active").length;
-const DISCHARGED = POLICIES.filter((p) => p.status === "discharged").length;
-const PREMIUM_TOTAL = POLICIES.reduce((sum, p) => sum + p.premiumUsd, 0);
-const COVER_TOTAL = POLICIES.reduce((sum, p) => sum + p.coverageUsd, 0);
+function uiStatus(p: OnchainPolicy): UiStatus {
+  if (p.status === "Armed") return "active";
+  if (p.status === "Discharged") return "discharged";
+  if (p.status === "Settled") return "settled";
+  return "none";
+}
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
-/** Elapsed share of the tenor. The countdown, with no JS behind it. */
-function burndown(p: Policy): number {
-  const total = p.tenorHours * 3600;
-  if (total <= 0) return 1;
-  return clamp01(p.boundAgoSeconds / total);
-}
+/* ── the cede bar ─────────────────────────────────────────────── */
 
-/* ── icons ──────────────────────────────────────────────────── */
+function CedeBar({ coverageUsd, cededShare }: { coverageUsd: number; cededShare: number }) {
+  const ceded = clamp01(cededShare);
+  const retainedUsd = coverageUsd * (1 - ceded);
+  const cededUsd = coverageUsd * ceded;
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3 font-mono text-[0.625rem] tracking-wide uppercase">
+        <span className="text-mist-dim">Pool retains</span>
+        <span className="text-mist-dim">Reinsurer assumes</span>
+      </div>
+
+      <div className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-line" aria-hidden="true">
+        <div className="h-full bg-lime" style={{ width: `${(1 - ceded) * 100}%` }} />
+        <div className="h-full bg-info/50" style={{ width: `${ceded * 100}%` }} />
+      </div>
+
+      <div className="mt-2 flex items-baseline justify-between gap-3 font-mono text-[0.625rem] text-mist-dim">
+        <span className="tabular">{usd0(retainedUsd)}</span>
+        <span className="tabular">{usd0(cededUsd)}</span>
+      </div>
+    </div>
+  );
+}
 
 function ExternalLinkIcon() {
   return (
@@ -58,47 +81,20 @@ function ExternalLinkIcon() {
   );
 }
 
-/* ── the cede bar ───────────────────────────────────────────────
-   Quota share, drawn to scale. Left is what Sentinel keeps on its own
-   balance sheet; right is what Bastion Re assumes the instant the policy
-   binds. Nobody waits for a treaty renewal. */
-
-function CedeBar({ coverageUsd, cededShare }: { coverageUsd: number; cededShare: number }) {
-  const ceded = clamp01(cededShare);
-  const retainedUsd = coverageUsd * (1 - ceded);
-  const cededUsd = coverageUsd * ceded;
-
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3 font-mono text-[0.625rem] tracking-wide uppercase">
-        <span className="text-mist-dim">Sentinel retains</span>
-        <span className="text-mist-dim">Bastion Re assumes</span>
-      </div>
-
-      <div
-        className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-line"
-        aria-hidden="true"
-      >
-        <div className="h-full bg-lime" style={{ width: `${(1 - ceded) * 100}%` }} />
-        <div className="h-full bg-info/50" style={{ width: `${ceded * 100}%` }} />
-      </div>
-
-      <div className="mt-2 flex items-baseline justify-between gap-3 font-mono text-[0.625rem] text-mist-dim">
-        <span className="tabular">{usd0(retainedUsd)}</span>
-        <span className="tabular">{usd0(cededUsd)}</span>
-      </div>
-    </div>
-  );
-}
-
 /* ── one token ──────────────────────────────────────────────── */
 
-function PolicyCard({ policy }: { policy: Policy }) {
-  const status = STATUS[policy.status];
-  const insured = agentById(policy.insuredAgentId);
-  const isActive = policy.status === "active";
-  const isDischarged = policy.status === "discharged";
-  const elapsed = burndown(policy);
+function PolicyCard({ policy, nowSeconds }: { policy: OnchainPolicy; nowSeconds: number }) {
+  const st = uiStatus(policy);
+  const status = STATUS[st];
+  const isActive = st === "active";
+  const isDischarged = st === "discharged";
+
+  const tenorSeconds = Math.max(0, policy.expiresAt - policy.boundAt);
+  const remaining = Math.max(0, policy.expiresAt - nowSeconds);
+  const boundAgo = Math.max(0, nowSeconds - policy.boundAt);
+  const elapsed = tenorSeconds > 0 ? clamp01(boundAgo / tenorSeconds) : 1;
+  const cededShare = policy.coverageUsd > 0 ? policy.cededCoverageUsd / policy.coverageUsd : 0;
+  const reinsured = policy.reinsurer && policy.reinsurer !== "0x0000000000000000000000000000000000000000";
 
   return (
     <article
@@ -108,17 +104,13 @@ function PolicyCard({ policy }: { policy: Policy }) {
       )}
     >
       {isDischarged && (
-        <div
-          aria-hidden="true"
-          className="stripe-danger pointer-events-none absolute inset-0 opacity-[0.35]"
-        />
+        <div aria-hidden="true" className="stripe-danger pointer-events-none absolute inset-0 opacity-[0.35]" />
       )}
 
-      {/* top strip — the token id is the identity, so it leads */}
       <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
-        <h3 className="font-mono text-lg text-white">
+        <h3 className="font-mono text-lg text-fg">
           <span className="text-mist-dim">#</span>
-          <span className="tabular">{policy.tokenId}</span>
+          <span className="tabular">{policy.id}</span>
         </h3>
         <Badge tone={status.tone} dot={status.dot}>
           {status.label}
@@ -126,70 +118,54 @@ function PolicyCard({ policy }: { policy: Policy }) {
       </div>
 
       <div className="flex-1 space-y-5 p-5">
-        {/* who is being insured */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-mono text-[0.625rem] tracking-wide text-mist-dim uppercase">
-              Insures
+              {policy.kind === "Treaty" ? "Reinsures pool" : "Beneficiary"}
             </p>
-            <p className="mt-1.5 truncate text-white">{insured?.name ?? policy.insuredAgentName}</p>
-            {insured && (
-              <p className="font-mono text-xs text-mist-dim">{insured.handle}</p>
-            )}
+            <p className="mt-1.5 truncate font-mono text-fg">{shortAddr(policy.beneficiary)}</p>
           </div>
-          {policy.reinsurancePolicyId !== undefined && (
+          {reinsured && (
             <span className="mt-1 shrink-0 rounded border border-info/25 bg-info/10 px-2 py-0.5 font-mono text-[0.625rem] text-info">
-              RE #{policy.reinsurancePolicyId}
+              CEDED
             </span>
           )}
         </div>
 
-        {/* the two numbers that matter */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="font-mono text-[0.625rem] tracking-wide text-mist-dim uppercase">
-              Coverage
-            </p>
-            <p className="tabular mt-1.5 font-display text-2xl text-white">
-              {usd0(policy.coverageUsd)}
-            </p>
+            <p className="font-mono text-[0.625rem] tracking-wide text-mist-dim uppercase">Coverage</p>
+            <p className="tabular mt-1.5 font-display text-2xl text-fg">{usd0(policy.coverageUsd)}</p>
           </div>
           <div>
-            <p className="font-mono text-[0.625rem] tracking-wide text-mist-dim uppercase">
-              Premium
-            </p>
-            <p className="tabular mt-1.5 font-display text-2xl text-lime">
-              {usd(policy.premiumUsd)}
-            </p>
+            <p className="font-mono text-[0.625rem] tracking-wide text-mist-dim uppercase">Premium</p>
+            <p className="tabular mt-1.5 font-display text-2xl text-lime">{usd(policy.premiumUsd)}</p>
           </div>
         </div>
 
-        <CedeBar coverageUsd={policy.coverageUsd} cededShare={policy.cededShare} />
+        <CedeBar coverageUsd={policy.coverageUsd} cededShare={cededShare} />
 
         <div className="space-y-2.5">
-          <Meta label="Reliability at bind">{pct(policy.reliabilityAtBind, 1)}</Meta>
-          <Meta label="Tenor">{durationLabel(policy.tenorHours * 3600)}</Meta>
-          <Meta label="Remaining">
-            {isActive ? durationLabel(policy.remainingSeconds) : "n/a"}
-          </Meta>
-          <Meta label="Bound">{agoLabel(policy.boundAgoSeconds)}</Meta>
+          <Meta label="Reliability at bind">{pct(policy.reliabilityBps / 10000, 1)}</Meta>
+          <Meta label="Tenor">{durationLabel(tenorSeconds)}</Meta>
+          <Meta label="Remaining">{isActive ? durationLabel(remaining) : "n/a"}</Meta>
+          <Meta label="Bound">{agoLabel(boundAgo)}</Meta>
         </div>
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3 font-mono text-[0.625rem]">
-        <span className="truncate text-mist-dim">{policy.capOrderId}</span>
+        <span className="truncate text-mist-dim">{shortHash(policy.intentId)}</span>
         <a
-          href={basescanTx(policy.txHash)}
+          href={explorerAddr(policy.holder)}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1.5 text-mist-dim hover:text-lime"
         >
-          {shortHash(policy.txHash)}
+          {shortAddr(policy.holder)}
           <ExternalLinkIcon />
         </a>
       </div>
 
-      {/* the countdown, rendered as geometry rather than a timer */}
       {isActive && (
         <div className="h-0.5 w-full bg-line" aria-hidden="true">
           <div className="h-full bg-lime" style={{ width: `${elapsed * 100}%` }} />
@@ -201,22 +177,24 @@ function PolicyCard({ policy }: { policy: Policy }) {
 
 /* ── section ────────────────────────────────────────────────── */
 
-function RailItem({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function RailItem({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline gap-2.5">
       <span>{label}</span>
-      <span className="tabular text-white">{children}</span>
+      <span className="tabular text-fg">{children}</span>
     </div>
   );
 }
 
 export function PolicyBook() {
+  const { policies, live } = usePolicies();
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const inForce = policies.filter((p) => uiStatus(p) === "active").length;
+  const discharged = policies.filter((p) => uiStatus(p) === "discharged").length;
+  const premiumTotal = policies.reduce((s, p) => s + p.premiumUsd, 0);
+  const coverTotal = policies.reduce((s, p) => s + p.coverageUsd, 0);
+
   return (
     <Section
       id="policies"
@@ -235,24 +213,32 @@ export function PolicyBook() {
     >
       <Reveal>
         <div className="mb-8 flex flex-wrap items-center gap-x-8 gap-y-3 font-mono text-[0.6875rem] tracking-wide text-mist-dim uppercase">
-          <RailItem label="Policies written">{POLICIES.length}</RailItem>
-          <RailItem label="In force">{IN_FORCE}</RailItem>
+          <RailItem label="Policies written">{policies.length}</RailItem>
+          <RailItem label="In force">{inForce}</RailItem>
           <div className="flex items-baseline gap-2.5">
             <span>Discharged</span>
-            <span className="tabular text-danger">{DISCHARGED}</span>
+            <span className="tabular text-danger">{discharged}</span>
           </div>
-          <RailItem label="Premium collected">{usd0(PREMIUM_TOTAL)}</RailItem>
-          <RailItem label="Cover written">{usd0(COVER_TOTAL)}</RailItem>
+          <RailItem label="Premium collected">{usd0(premiumTotal)}</RailItem>
+          <RailItem label="Cover written">{usd0(coverTotal)}</RailItem>
         </div>
       </Reveal>
 
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {POLICIES.map((policy, i) => (
-          <Reveal key={policy.tokenId} delay={i * 60}>
-            <PolicyCard policy={policy} />
-          </Reveal>
-        ))}
-      </div>
+      {policies.length === 0 ? (
+        <div className="panel p-10 text-center text-sm text-mist">
+          {live
+            ? "No policies bound yet on this pool. Bound policies appear here as ERC-721 tokens."
+            : "Connect a deployed PolicyPool (NEXT_PUBLIC_POLICY_POOL) to read the live policy book."}
+        </div>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {policies.map((policy, i) => (
+            <Reveal key={policy.id} delay={i * 60}>
+              <PolicyCard policy={policy} nowSeconds={nowSeconds} />
+            </Reveal>
+          ))}
+        </div>
+      )}
     </Section>
   );
 }

@@ -1,22 +1,17 @@
 "use client";
 
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { mainnet, sepolia, base, baseSepolia, optimism } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import { ReactNode } from "react";
+import { robinhoodChain, RHC_RPC_URL } from "../lib/robinhood-chain";
 
 const config = createConfig(
   getDefaultConfig({
-    // Your dApps chains — baseSepolia is where the HALON testnet contracts live.
-    chains: [base, baseSepolia, mainnet, sepolia, optimism],
+    // HALON ProofOfWork contracts run on Robinhood Chain — the only chain here.
+    chains: [robinhoodChain],
     transports: {
-      // RPC URL for each chain
-      [base.id]: http(),
-      [baseSepolia.id]: http(process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL),
-      [mainnet.id]: http(),
-      [sepolia.id]: http(),
-      [optimism.id]: http(),
+      [robinhoodChain.id]: http(RHC_RPC_URL || undefined),
     },
 
     // Required API Keys

@@ -3,7 +3,8 @@ import { ButtonLink } from "@/components/ui/button";
 import Image from "next/image";
 import { HalonWordmark } from "@/components/ui/logo";
 import artProtocolCore from "@/public/art-protocol-core.png";
-import { basescanAddr, shortAddr } from "@/lib/format";
+import artProtocolCoreWhite from "@/public/art-protocol-core-white.png";
+import { explorerAddr, shortAddr } from "@/lib/format";
 import { NAV, SDK_METHODS, SITE } from "@/lib/site";
 
 /* ── inline icons ─────────────────────────────────────────────── */
@@ -57,10 +58,16 @@ export function CtaBand() {
           src={artProtocolCore}
           alt=""
           aria-hidden="true"
-          className="mx-auto block h-48 w-auto animate-float select-none mix-blend-screen sm:h-64"
+          className="theme-dark-only mx-auto block h-48 w-auto animate-float select-none mix-blend-screen sm:h-64"
+        />
+        <Image
+          src={artProtocolCoreWhite}
+          alt=""
+          aria-hidden="true"
+          className="theme-light-only mx-auto block h-48 w-auto animate-float select-none mix-blend-multiply sm:h-64"
         />
 
-        <h2 className="mt-8 font-display text-[clamp(1.9rem,4.6vw,3.4rem)] leading-[1.05] text-balance text-white">
+        <h2 className="mt-8 font-display text-[clamp(1.9rem,4.6vw,3.4rem)] leading-[1.05] text-balance text-fg">
           Your agent is one bad order away from being{" "}
           <span className="text-gradient">uninsurable</span>.
         </h2>
@@ -90,11 +97,12 @@ export function CtaBand() {
 
 /* ── footer ───────────────────────────────────────────────────── */
 
-const headingClass = "font-mono text-[0.625rem] uppercase tracking-[0.16em] text-white mb-4";
-const linkClass = "text-sm text-mist-dim transition-colors hover:text-white";
+const headingClass = "font-mono text-[0.625rem] uppercase tracking-[0.16em] text-fg mb-4";
+const linkClass = "text-sm text-mist-dim transition-colors hover:text-fg";
 
 const BUILD_LINKS = [
   { label: "Documentation", href: SITE.docs, external: false },
+  { label: "Whitepaper", href: "/whitepaper", external: false },
   { label: "Proof of Work", href: "/pow", external: false },
   { label: "Get API keys", href: "/login", external: false },
 ] as const;
@@ -165,7 +173,7 @@ export function SiteFooter() {
           <p className="text-xs text-mist-dim">© 2026 HALON. MIT licensed.</p>
 
           <a
-            href={basescanAddr(SITE.usdc)}
+            href={explorerAddr(SITE.usdc)}
             target="_blank"
             rel="noreferrer"
             className="tabular font-mono text-xs text-mist-dim transition-colors hover:text-lime"
@@ -183,7 +191,7 @@ export function SiteFooter() {
             and leading-[0.8] pushes them past it — overflow-hidden clips. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none mt-16 -mb-16 text-center leading-[0.8] font-display text-[clamp(4rem,17vw,15rem)] font-bold tracking-[-0.05em] whitespace-nowrap text-white/[0.035] select-none"
+          className="pointer-events-none mt-16 -mb-16 text-center leading-[0.8] font-display text-[clamp(4rem,17vw,15rem)] font-bold tracking-[-0.05em] whitespace-nowrap text-fg/[0.035] select-none"
         >
           HALON
         </div>

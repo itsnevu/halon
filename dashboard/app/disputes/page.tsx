@@ -5,15 +5,23 @@ import { SiteFooter } from "@/components/cta-footer";
 import { useState } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CLAIMS_ADJUDICATOR_ABI } from "@/lib/pow-abis";
+import { explorerTx } from "@/lib/robinhood-chain";
+import {
+  CLAIMS_ADJUDICATOR_ADDRESS,
+  POLICY_POOL_ADDRESS,
+  POLICY_POOL_B_ADDRESS,
+} from "@/lib/onchain";
 
-const CLAIMS_ADJUDICATOR_ADDRESS = "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9" as const;
-const POLICY_POOL_A = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512" as const;
-const POLICY_POOL_B = "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0" as const;
+// Env-driven pool options — no hardcoded addresses. Only configured pools show.
+const POOL_OPTIONS = [
+  POLICY_POOL_ADDRESS ? { addr: POLICY_POOL_ADDRESS, label: "Policy Pool A (Underwriter)" } : null,
+  POLICY_POOL_B_ADDRESS ? { addr: POLICY_POOL_B_ADDRESS, label: "Policy Pool B (Reinsurer)" } : null,
+].filter((o): o is { addr: `0x${string}`; label: string } => o !== null);
 
 export default function DisputesPage() {
   const { isConnected } = useAccount();
-  
-  const [selectedPool, setSelectedPool] = useState<string>(POLICY_POOL_A);
+
+  const [selectedPool, setSelectedPool] = useState<string>(POOL_OPTIONS[0]?.addr ?? "");
   const [policyId, setPolicyId] = useState<string>("1");
   const [reason, setReason] = useState<string>("Disputed settlement: solver execution invalid.");
 
@@ -21,7 +29,7 @@ export default function DisputesPage() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
   const handleResolve = () => {
-    if (!policyId || !reason) return;
+    if (!policyId || !reason || !selectedPool || !CLAIMS_ADJUDICATOR_ADDRESS) return;
     writeContract({
       address: CLAIMS_ADJUDICATOR_ADDRESS,
       abi: CLAIMS_ADJUDICATOR_ABI,
@@ -37,7 +45,7 @@ export default function DisputesPage() {
         <div className="absolute top-0 w-[800px] h-[300px] bg-danger/10 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="w-full max-w-2xl z-10">
-          <h1 className="text-4xl font-display text-white mb-2">Dispute Resolution</h1>
+          <h1 className="text-4xl font-display text-fg mb-2">Dispute Resolution</h1>
           <p className="text-mist mb-12">Review and adjudicate claims where solver execution evidence is contested by the user.</p>
 
           {!isConnected ? (
@@ -46,18 +54,25 @@ export default function DisputesPage() {
             </div>
           ) : (
             <div className="panel p-8 rounded-3xl bg-surface-2 border border-line space-y-6">
-              <h2 className="text-xl text-white font-medium">Adjudicate Claim On-Chain</h2>
+              <h2 className="text-xl text-fg font-medium">Adjudicate Claim On-Chain</h2>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-mono text-mist uppercase mb-2">Target Policy Pool</label>
-                  <select 
+                  <select
                     value={selectedPool}
                     onChange={(e) => setSelectedPool(e.target.value)}
-                    className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-danger outline-none transition-colors"
+                    className="w-full bg-surface border border-line rounded-2xl p-4 text-fg text-sm focus:border-danger outline-none transition-colors"
                   >
-                    <option value={POLICY_POOL_A}>Policy Pool A (Sentinel Pool)</option>
-                    <option value={POLICY_POOL_B}>Policy Pool B (Bastion Re Pool)</option>
+                    {POOL_OPTIONS.length === 0 ? (
+                      <option value="">No pools configured</option>
+                    ) : (
+                      POOL_OPTIONS.map((o) => (
+                        <option key={o.addr} value={o.addr}>
+                          {o.label} · {o.addr.slice(0, 8)}…
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
@@ -68,7 +83,7 @@ export default function DisputesPage() {
                     value={policyId}
                     onChange={(e) => setPolicyId(e.target.value)}
                     placeholder="1" 
-                    className="w-full bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-danger outline-none font-mono transition-colors" 
+                    className="w-full bg-surface border border-line rounded-2xl p-4 text-fg text-sm focus:border-danger outline-none font-mono transition-colors" 
                   />
                 </div>
 
@@ -78,7 +93,7 @@ export default function DisputesPage() {
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="Describe why this dispute is resolved and discharged..."
-                    className="w-full h-24 bg-surface border border-line rounded-2xl p-4 text-white text-sm focus:border-danger outline-none transition-colors resize-none" 
+                    className="w-full h-24 bg-surface border border-line rounded-2xl p-4 text-fg text-sm focus:border-danger outline-none transition-colors resize-none" 
                   />
                 </div>
               </div>
@@ -86,7 +101,7 @@ export default function DisputesPage() {
               <button 
                 onClick={handleResolve}
                 disabled={isPending || isConfirming || !policyId || !reason}
-                className="w-full py-4 rounded-full font-semibold bg-danger text-white hover:bg-danger/90 disabled:opacity-40 transition-all text-sm"
+                className="w-full py-4 rounded-full font-semibold bg-danger text-fg hover:bg-danger/90 disabled:opacity-40 transition-all text-sm"
               >
                 {isConfirming ? "Confirming..." : isPending ? "Confirming in Wallet..." : "Discharge & Payout Policy"}
               </button>
@@ -94,7 +109,7 @@ export default function DisputesPage() {
               {hash && (
                 <div className="mt-4 text-center">
                   <a 
-                    href={`https://basescan.org/tx/${hash}`} 
+                    href={explorerTx(hash)}
                     target="_blank" 
                     rel="noreferrer"
                     className="text-xs text-danger underline break-all font-mono"

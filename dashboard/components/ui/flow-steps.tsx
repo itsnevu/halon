@@ -43,7 +43,7 @@ export function FlowSteps({
               <span
                 className={cn(
                   "max-w-[64px] text-center text-[0.625rem] leading-tight",
-                  filled ? "text-white" : "text-mist",
+                  filled ? "text-fg" : "text-mist",
                 )}
               >
                 {label}

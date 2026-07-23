@@ -7,12 +7,7 @@ export default function PoWLandingPage() {
     <div className="py-12 md:py-20 px-5 sm:px-8 max-w-7xl mx-auto space-y-16">
       {/* Hero Header */}
       <div className="text-center space-y-6 max-w-4xl mx-auto">
-        <div className="inline-flex items-center gap-2 rounded-full border border-lime/30 bg-lime/10 px-4 py-1.5 text-xs font-semibold text-lime tracking-wide uppercase">
-          <span className="size-1.5 rounded-full bg-lime"></span>
-          ROBINHOOD CHAIN HACKATHON 2026
-        </div>
-
-        <h1 className="font-display text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-none">
+        <h1 className="font-display text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-fg leading-none">
           Proof of Work <br className="hidden sm:inline" />
           <span className="bg-gradient-to-r from-lime via-spring to-mint bg-clip-text text-transparent">
             RWA Escrow & AI Financing
@@ -20,7 +15,7 @@ export default function PoWLandingPage() {
         </h1>
 
         <p className="text-mist text-lg sm:text-xl max-w-3xl mx-auto leading-relaxed font-sans">
-          Eliminating payment friction for global freelancers by combining <strong className="text-white">RWA Stock Collateral (AAPL/USDG)</strong>, <strong className="text-white">FastAPI AI Verification</strong>, and <strong className="text-white">Morpho DeFi Earn Pools</strong>.
+          Eliminating payment friction for global freelancers by combining <strong className="text-fg">RWA Stock Collateral (AAPL/USDG)</strong>, <strong className="text-fg">FastAPI AI Verification</strong>, and <strong className="text-fg">Morpho DeFi Earn Pools</strong>.
         </p>
       </div>
 
@@ -40,7 +35,7 @@ export default function PoWLandingPage() {
             </div>
             <div>
               <span className="text-xs font-mono text-lime uppercase tracking-wider">Client Escrow</span>
-              <h3 className="text-2xl font-bold font-display text-white group-hover:text-lime transition-colors">Client Portal</h3>
+              <h3 className="text-2xl font-bold font-display text-fg group-hover:text-lime transition-colors">Client Portal</h3>
             </div>
             <p className="text-mist text-sm leading-relaxed">
               Lock tokenized RWA assets (AAPL, USDG) as escrow collateral. Manage milestone contracts and enable automated advance payouts for trusted talent.
@@ -72,7 +67,7 @@ export default function PoWLandingPage() {
             </div>
             <div>
               <span className="text-xs font-mono text-mint uppercase tracking-wider">Freelance Payout</span>
-              <h3 className="text-2xl font-bold font-display text-white group-hover:text-mint transition-colors">Freelancer Portal</h3>
+              <h3 className="text-2xl font-bold font-display text-fg group-hover:text-mint transition-colors">Freelancer Portal</h3>
             </div>
             <p className="text-mist text-sm leading-relaxed">
               Upload deliverables for real-time AI Risk Scoring. Get instant 85% advance financing or full milestone release upon verification.
@@ -101,10 +96,10 @@ export default function PoWLandingPage() {
             </div>
             <div>
               <span className="text-xs font-mono text-spring uppercase tracking-wider">Robinhood Earn Vault</span>
-              <h3 className="text-2xl font-bold font-display text-white group-hover:text-spring transition-colors">Liquidity Vault</h3>
+              <h3 className="text-2xl font-bold font-display text-fg group-hover:text-spring transition-colors">Liquidity Vault</h3>
             </div>
             <p className="text-mist text-sm leading-relaxed">
-              Supply USDG liquidity to Morpho vaults. Earn base APY (7.2%) plus extra yield from advance financing repayments.
+              Supply USDG liquidity to Morpho vaults and earn yield from advance financing repayments.
             </p>
           </div>
 
@@ -120,32 +115,32 @@ export default function PoWLandingPage() {
       {/* Protocol Architecture Workflow */}
       <div className="rounded-3xl neu neu-raise border border-line bg-surface-2 p-8 md:p-12 space-y-8">
         <div className="text-center max-w-2xl mx-auto space-y-2">
-          <h2 className="text-2xl md:text-3xl font-bold font-display text-white">How Proof of Work Operates</h2>
+          <h2 className="text-2xl md:text-3xl font-bold font-display text-fg">How Proof of Work Operates</h2>
           <p className="text-mist text-sm">Automated tri-party workflow connecting clients, AI verifiers, and liquidity pools.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
           <div className="p-5 rounded-2xl border border-line bg-surface space-y-3">
             <span className="size-8 rounded-full bg-lime/10 border border-lime/30 text-lime font-mono text-xs font-bold flex items-center justify-center">01</span>
-            <h4 className="font-bold text-white text-base">RWA Collateral Lock</h4>
+            <h4 className="font-bold text-fg text-base">RWA Collateral Lock</h4>
             <p className="text-xs text-mist leading-relaxed">Client locks AAPL or USDG into <code className="text-lime">EscrowProject.sol</code>.</p>
           </div>
 
           <div className="p-5 rounded-2xl border border-line bg-surface space-y-3">
             <span className="size-8 rounded-full bg-mint/10 border border-mint/30 text-mint font-mono text-xs font-bold flex items-center justify-center">02</span>
-            <h4 className="font-bold text-white text-base">AI Proof Scoring</h4>
+            <h4 className="font-bold text-fg text-base">AI Proof Scoring</h4>
             <p className="text-xs text-mist leading-relaxed">FastAPI service parses deliverables via LLM OCR & anomaly detection.</p>
           </div>
 
           <div className="p-5 rounded-2xl border border-line bg-surface space-y-3">
             <span className="size-8 rounded-full bg-spring/10 border border-spring/30 text-spring font-mono text-xs font-bold flex items-center justify-center">03</span>
-            <h4 className="font-bold text-white text-base">Advance Payout</h4>
+            <h4 className="font-bold text-fg text-base">Advance Payout</h4>
             <p className="text-xs text-mist leading-relaxed">If AI Score &gt; 80, Morpho Vault advances 85% funds instantly.</p>
           </div>
 
           <div className="p-5 rounded-2xl border border-line bg-surface space-y-3">
             <span className="size-8 rounded-full bg-lime/10 border border-lime/30 text-lime font-mono text-xs font-bold flex items-center justify-center">04</span>
-            <h4 className="font-bold text-white text-base">Net-30 Settlement</h4>
+            <h4 className="font-bold text-fg text-base">Net-30 Settlement</h4>
             <p className="text-xs text-mist leading-relaxed">Client settles contract, repaying Morpho Vault with added yield.</p>
           </div>
         </div>

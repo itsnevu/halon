@@ -19,7 +19,9 @@ contract ProofOfWorkTest is Test {
     function setUp() public {
         usdg = new MockERC20("USDG Stablecoin", "USDG", 18);
         oracle = new MockAggregatorV3(8, 100 * 10**8); // $100 price dummy
-        factory = new EscrowFactory(aiAgent);
+        // No sequencer feed in tests (address(0) skips the L2 uptime check),
+        // 1-hour default staleness window.
+        factory = new EscrowFactory(aiAgent, address(0), 1 hours);
         
         // Setup client funds
         usdg.mint(client, 10000 * 10**18);

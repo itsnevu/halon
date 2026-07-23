@@ -7,11 +7,9 @@ import { HalonWordmark } from "@/components/ui/logo";
 import { ConnectKitButton } from "connectkit";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/cn";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { NAV, SITE } from "@/lib/site";
 
-type ThemePref = "auto" | "light" | "dark";
-const LANGUAGES = ["English", "Bahasa", "Español", "中文"] as const;
-const CURRENCIES = ["USD", "EUR", "IDR", "ETH"] as const;
 
 /**
  * Two hairlines that fold into an X. Transform lives inline because Tailwind
@@ -35,49 +33,17 @@ function MenuGlyph({ open }: { open: boolean }) {
 
 const triggerClass =
   "grid size-10 shrink-0 place-items-center rounded-full border border-line " +
-  "bg-white/[0.03] text-white transition-colors duration-200 hover:border-lime/40 hover:bg-white/[0.06]";
+  "bg-white/[0.03] text-fg transition-colors duration-200 hover:border-lime/40 hover:bg-white/[0.06]";
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const [prefsOpen, setPrefsOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const prefsRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [theme, setTheme] = useState<ThemePref>("auto");
-  const [lang, setLang] = useState<string>("English");
-  const [currency, setCurrency] = useState<string>("USD");
 
   const { data: session, status } = useSession();
-
-  /* Load saved preferences and apply the theme attribute to <html>. */
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("halon:prefs") || "{}");
-      if (saved.theme) setTheme(saved.theme);
-      if (saved.lang) setLang(saved.lang);
-      if (saved.currency) setCurrency(saved.currency);
-    } catch {
-      /* ignore malformed storage */
-    }
-  }, []);
-
-  useEffect(() => {
-    const resolved =
-      theme === "auto"
-        ? window.matchMedia("(prefers-color-scheme: light)").matches
-          ? "light"
-          : "dark"
-        : theme;
-    document.documentElement.dataset.theme = resolved;
-    try {
-      localStorage.setItem("halon:prefs", JSON.stringify({ theme, lang, currency }));
-    } catch {
-      /* ignore */
-    }
-  }, [theme, lang, currency]);
 
   /* Search submit → the Explore page, carrying the query. */
   function submitSearch(e: FormEvent) {
@@ -86,9 +52,6 @@ export function SiteHeader() {
     router.push(q ? `/explore?q=${encodeURIComponent(q)}` : "/explore");
     setOpen(false);
   }
-
-  const cycle = (list: readonly string[], current: string) =>
-    list[(list.indexOf(current) + 1) % list.length];
 
   /* Header goes opaque once the hero has moved. rAF-throttled. */
   useEffect(() => {
@@ -106,17 +69,6 @@ export function SiteHeader() {
       window.removeEventListener("scroll", onScroll);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, []);
-
-  /* Close preferences dropdown on outside click */
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (prefsRef.current && !prefsRef.current.contains(event.target as Node)) {
-        setPrefsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   /* Drawer: lock scroll, focus close, honour Escape, bail out at lg. */
@@ -164,11 +116,11 @@ export function SiteHeader() {
           {/* left */}
           <div className="flex items-center gap-3">
             <a
-              href="#top"
+              href="/"
               aria-label="HALON home"
               className="rounded-sm transition-opacity duration-200 hover:opacity-80"
             >
-              <HalonWordmark className="h-6 w-auto text-white" />
+              <HalonWordmark className="h-6 w-auto text-fg" />
             </a>
           </div>
 
@@ -181,7 +133,7 @@ export function SiteHeader() {
               <a
                 key={item.href}
                 href={item.href}
-                className="group relative py-1 text-sm text-mist transition-colors duration-200 hover:text-white"
+                className="group relative py-1 text-sm text-mist transition-colors duration-200 hover:text-fg"
               >
                 {item.label}
                 <span
@@ -213,95 +165,14 @@ export function SiteHeader() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search tokens, pools..."
-                className="bg-surface-2 border border-line text-white text-sm rounded-full pl-9 pr-10 py-2 w-[240px] outline-none focus:border-lime/40 focus:bg-surface-3 transition-all"
+                className="bg-surface-2 border border-line text-fg text-sm rounded-full pl-9 pr-10 py-2 w-[240px] outline-none focus:border-lime/40 focus:bg-surface-3 transition-all"
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <span className="text-xs bg-surface-3 text-mist px-1.5 py-0.5 rounded border border-line">↵</span>
               </div>
             </form>
 
-            {/* PREFERENCES MENU */}
-            <div className="relative" ref={prefsRef}>
-              <button 
-                onClick={() => setPrefsOpen(!prefsOpen)}
-                className={cn(
-                  "h-10 w-10 flex items-center justify-center rounded-full transition-colors border",
-                  prefsOpen ? "bg-surface-3 border-lime/30 text-white" : "bg-surface-2 border-line text-mist hover:bg-surface-3 hover:text-white"
-                )}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-              </button>
-
-              {prefsOpen && (
-                <div className="absolute right-0 top-12 w-[320px] bg-[#131313] border border-[#2B2B2B] rounded-2xl shadow-2xl p-2 z-50 animate-fade-in origin-top-right">
-                  <div className="px-3 py-3 text-white font-medium mb-1">Global preferences</div>
-                  
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl group">
-                    <span className="text-mist transition-colors">Theme</span>
-                    <div className="flex bg-[#1E1E1E] rounded-full p-1 border border-[#2B2B2B]">
-                      <button
-                        type="button"
-                        onClick={() => setTheme("auto")}
-                        className={cn(
-                          "px-3 py-1 text-xs font-medium rounded-full transition-colors",
-                          theme === "auto" ? "bg-[#2B2B2B] text-white" : "text-mist hover:text-white",
-                        )}
-                      >
-                        Auto
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Light theme"
-                        onClick={() => setTheme("light")}
-                        className={cn(
-                          "px-3 py-1 text-xs font-medium rounded-full flex items-center justify-center transition-colors",
-                          theme === "light" ? "bg-[#2B2B2B] text-white" : "text-mist hover:text-white",
-                        )}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Dark theme"
-                        onClick={() => setTheme("dark")}
-                        className={cn(
-                          "px-3 py-1 text-xs font-medium rounded-full flex items-center justify-center transition-colors",
-                          theme === "dark" ? "bg-[#2B2B2B] text-white" : "text-mist hover:text-white",
-                        )}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setLang((l) => cycle(LANGUAGES, l))}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors group mt-1 text-left"
-                  >
-                    <span className="text-mist group-hover:text-white transition-colors">Language</span>
-                    <div className="flex items-center gap-1 text-white font-medium text-sm">
-                      {lang}
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mist"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setCurrency((c) => cycle(CURRENCIES, c))}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors group mt-1 text-left"
-                  >
-                    <span className="text-mist group-hover:text-white transition-colors">Currency</span>
-                    <div className="flex items-center gap-1 text-white font-medium text-sm">
-                      {currency}
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mist"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                    </div>
-                  </button>
-
-                </div>
-              )}
-            </div>
-
+            <AnimatedThemeToggler className="mr-1" />
             <div className="flex items-center pl-1">
               <ConnectKitButton />
             </div>
@@ -336,18 +207,41 @@ export function SiteHeader() {
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid-bg opacity-30" />
 
           <div className="relative mx-auto flex h-16 w-full max-w-7xl shrink-0 items-center justify-between px-5 sm:px-8 md:h-[4.5rem]">
-            <HalonWordmark className="h-6 w-auto text-white" />
-            <button
-              ref={closeRef}
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close menu"
-              aria-expanded={open}
-              aria-controls="site-menu"
-              className={triggerClass}
-            >
-              <MenuGlyph open />
-            </button>
+            <HalonWordmark className="h-6 w-auto text-fg" />
+            <div className="flex items-center gap-2">
+              <AnimatedThemeToggler />
+              <button
+                ref={closeRef}
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close menu"
+                aria-expanded={open}
+                aria-controls="site-menu"
+                className={triggerClass}
+              >
+                <MenuGlyph open />
+              </button>
+            </div>
+          </div>
+
+          {/* Search — same handler as desktop; routes to /explore and closes the drawer. */}
+          <div className="relative mx-auto w-full max-w-7xl px-5 pt-2 pb-1 sm:px-8">
+            <form onSubmit={submitSearch} className="relative">
+              <button
+                type="submit"
+                aria-label="Search"
+                className="absolute inset-y-0 left-0 flex items-center pl-4 text-mist"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </button>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search tokens, pools..."
+                className="w-full rounded-full border border-line bg-surface-2 py-3 pl-11 pr-4 text-sm text-fg outline-none transition-colors focus:border-lime/40"
+              />
+            </form>
           </div>
 
           <nav
@@ -359,7 +253,7 @@ export function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className="animate-rise w-fit py-2 font-display text-3xl font-semibold tracking-[-0.03em] text-white transition-colors duration-200 hover:text-lime"
+                className="animate-rise w-fit py-2 font-display text-3xl font-semibold tracking-[-0.03em] text-fg transition-colors duration-200 hover:text-lime"
                 style={{ animationDelay: `${40 + i * 55}ms` }}
               >
                 {item.label}
@@ -390,7 +284,7 @@ export function SiteHeader() {
               ) : (
                 <button 
                   onClick={() => signOut()}
-                  className="h-10 px-6 w-full inline-flex items-center justify-center rounded-full border border-line bg-surface-2 text-sm font-medium text-white transition-colors hover:bg-surface-3"
+                  className="h-10 px-6 w-full inline-flex items-center justify-center rounded-full border border-line bg-surface-2 text-sm font-medium text-fg transition-colors hover:bg-surface-3"
                 >
                   Sign Out
                 </button>

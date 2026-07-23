@@ -66,7 +66,7 @@ export function HalonWordmark({
     <span
       className={cn(
         "inline-flex items-center gap-[0.4em] font-display text-2xl leading-none font-bold",
-        "tracking-[0.02em] text-white",
+        "tracking-[0.02em] text-fg",
         className,
       )}
     >

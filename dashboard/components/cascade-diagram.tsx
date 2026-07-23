@@ -7,15 +7,15 @@ import { Section } from "@/components/ui/section";
 import { SectionArt } from "@/components/ui/section-art";
 import iconCascade from "@/public/icon-cascade.png";
 import artChain from "@/public/art-chain.png";
+import { useReadContracts } from "wagmi";
 import {
-  DEMO_COVERAGE_USD,
-  DEMO_QUOTE,
-  POOL_A,
-  POOL_B,
-  UTIL_A,
-  UTIL_B,
-} from "@/lib/data";
-import { pct, usd, usdCompact } from "@/lib/format";
+  HALON_CHAIN_ID,
+  POLICY_POOL_ABI,
+  POLICY_POOL_ADDRESS,
+  POLICY_POOL_B_ADDRESS,
+  fromUsdc,
+} from "@/lib/onchain";
+import { pct, usdCompact } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { DANGER, INK, LIME, LINE, MINT, MIST_DIM, SURFACE } from "@/lib/brand";
 
@@ -42,28 +42,15 @@ interface NodeDef {
   y: number;
   role: string;
   name: string;
-  pool?: { util: number; totalUsd: number };
+  /** Which on-chain pool backs this node, if any. Figures are read live. */
+  layer?: "A" | "B";
 }
 
 const NODES: NodeDef[] = [
-  { key: "client", x: 30, y: 60, role: "Requester", name: "Meridian Capital" },
-  {
-    key: "underwriter",
-    x: 360,
-    y: 60,
-    role: "Layer 1",
-    name: "Sentinel Underwriting",
-    pool: { util: UTIL_A, totalUsd: POOL_A.totalCapitalUsd },
-  },
-  {
-    key: "reinsurer",
-    x: 690,
-    y: 60,
-    role: "Layer 2",
-    name: "Bastion Re",
-    pool: { util: UTIL_B, totalUsd: POOL_B.totalCapitalUsd },
-  },
-  { key: "worker", x: 360, y: 300, role: "Insured", name: "Aurora Analytics" },
+  { key: "client", x: 30, y: 60, role: "Requester", name: "Client" },
+  { key: "underwriter", x: 360, y: 60, role: "Layer 1", name: "Underwriter pool", layer: "A" },
+  { key: "reinsurer", x: 690, y: 60, role: "Layer 2", name: "Reinsurer pool", layer: "B" },
+  { key: "worker", x: 360, y: 300, role: "Insured", name: "Worker agent" },
 ];
 
 interface EdgeDef {
@@ -78,8 +65,6 @@ interface EdgeDef {
   to: NodeKey;
 }
 
-const RECOVERY_USD = DEMO_COVERAGE_USD * DEMO_QUOTE.cededShare;
-
 const EDGES: EdgeDef[] = [
   {
     id: "e1",
@@ -87,7 +72,7 @@ const EDGES: EdgeDef[] = [
     to: "underwriter",
     tone: "lime",
     d: "M 234 88 C 280 66, 310 66, 356 88",
-    label: `premium ${usd(DEMO_QUOTE.premiumUsd)}`,
+    label: "premium",
     lx: 295,
     ly: 72,
   },
@@ -97,7 +82,7 @@ const EDGES: EdgeDef[] = [
     to: "reinsurer",
     tone: "lime",
     d: "M 564 88 C 610 66, 640 66, 686 88",
-    label: `cede ${usd(DEMO_QUOTE.cededPremiumUsd)}`,
+    label: "cede",
     lx: 625,
     ly: 72,
   },
@@ -107,7 +92,7 @@ const EDGES: EdgeDef[] = [
     to: "worker",
     tone: "lime",
     d: "M 170 138 Q 170 330, 356 330",
-    label: `job ${usd(DEMO_COVERAGE_USD)}`,
+    label: "job",
     lx: 216,
     ly: 282,
   },
@@ -138,7 +123,7 @@ const EDGES: EdgeDef[] = [
     to: "client",
     tone: "payout",
     d: "M 356 120 Q 295 158, 234 120",
-    label: `discharge ${usd(DEMO_COVERAGE_USD)}`,
+    label: "discharge",
     lx: 295,
     ly: 139,
   },
@@ -148,7 +133,7 @@ const EDGES: EdgeDef[] = [
     to: "underwriter",
     tone: "lime",
     d: "M 686 120 Q 625 158, 564 120",
-    label: `recovery ${usd(RECOVERY_USD)}`,
+    label: "recovery",
     lx: 625,
     ly: 139,
   },
@@ -285,6 +270,32 @@ export function CascadeDiagram() {
   const [tabHidden, setTabHidden] = useState(false);
   const [reduced, setReduced] = useState(false);
 
+  // Live capital + utilization for the two pool nodes. No fixtures — "—" until
+  // the pools are deployed and read successfully.
+  const { data: poolData } = useReadContracts({
+    contracts: [
+      { address: POLICY_POOL_ADDRESS, abi: POLICY_POOL_ABI, functionName: "totalCapital", chainId: HALON_CHAIN_ID },
+      { address: POLICY_POOL_ADDRESS, abi: POLICY_POOL_ABI, functionName: "utilizationBps", chainId: HALON_CHAIN_ID },
+      { address: POLICY_POOL_B_ADDRESS, abi: POLICY_POOL_ABI, functionName: "totalCapital", chainId: HALON_CHAIN_ID },
+      { address: POLICY_POOL_B_ADDRESS, abi: POLICY_POOL_ABI, functionName: "utilizationBps", chainId: HALON_CHAIN_ID },
+    ],
+    query: {
+      enabled: Boolean(POLICY_POOL_ADDRESS || POLICY_POOL_B_ADDRESS),
+      refetchInterval: 15_000,
+    },
+  });
+  const ok = (i: number) => poolData?.[i]?.status === "success";
+  const poolByLayer: Record<"A" | "B", { total?: number; util?: number }> = {
+    A: {
+      total: ok(0) ? fromUsdc(poolData![0].result as bigint) : undefined,
+      util: ok(1) ? Number(poolData![1].result) / 10000 : undefined,
+    },
+    B: {
+      total: ok(2) ? fromUsdc(poolData![2].result as bigint) : undefined,
+      util: ok(3) ? Number(poolData![3].result) / 10000 : undefined,
+    },
+  };
+
   const rawId = useId();
   // useId() emits colons, which are illegal inside url(#…) references.
   const gid = `cascade${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -406,7 +417,7 @@ export function CascadeDiagram() {
                       mode === m
                         ? m === "happy"
                           ? "bg-lime text-lime-ink"
-                          : "bg-danger text-white"
+                          : "bg-danger text-fg"
                         : "text-mist-dim hover:text-mist",
                     )}
                   >
@@ -541,41 +552,37 @@ export function CascadeDiagram() {
                           y={n.y + 50}
                           fontSize={15}
                           fontWeight={500}
-                          fill="#fff"
+                          fill="var(--color-fg)"
                         >
                           {n.name}
                         </text>
 
-                        {n.pool && (
-                          <g>
-                            <rect
-                              x={n.x}
-                              y={BAR_Y}
-                              width={NODE_W}
-                              height={6}
-                              rx={3}
-                              fill={LINE}
-                            />
-                            <rect
-                              x={n.x}
-                              y={BAR_Y}
-                              width={Math.max(6, NODE_W * n.pool.util)}
-                              height={6}
-                              rx={3}
-                              fill={LIME}
-                              opacity={0.85}
-                            />
-                            <text
-                              x={n.x}
-                              y={BAR_Y + 22}
-                              className="font-mono"
-                              fontSize={10}
-                              fill={MIST_DIM}
-                            >
-                              {`${pct(n.pool.util, 0)} utilized · ${usdCompact(n.pool.totalUsd)}`}
-                            </text>
-                          </g>
-                        )}
+                        {n.layer && (() => {
+                          const p = poolByLayer[n.layer];
+                          return (
+                            <g>
+                              <rect x={n.x} y={BAR_Y} width={NODE_W} height={6} rx={3} fill={LINE} />
+                              <rect
+                                x={n.x}
+                                y={BAR_Y}
+                                width={Math.max(6, NODE_W * (p.util ?? 0))}
+                                height={6}
+                                rx={3}
+                                fill={LIME}
+                                opacity={0.85}
+                              />
+                              <text
+                                x={n.x}
+                                y={BAR_Y + 22}
+                                className="font-mono"
+                                fontSize={10}
+                                fill={MIST_DIM}
+                              >
+                                {`${p.util !== undefined ? pct(p.util, 0) : "—"} utilized · ${p.total !== undefined ? usdCompact(p.total) : "—"}`}
+                              </text>
+                            </g>
+                          );
+                        })()}
                       </g>
                     );
                   })}
@@ -621,7 +628,7 @@ export function CascadeDiagram() {
           {/* `sticky` is itself a positioned ancestor — no `relative` (they'd fight for `position`). */}
           <div className="panel-flat sticky overflow-hidden p-5 pb-7 lg:top-24">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-semibold text-white">Sequence</h3>
+              <h3 className="text-base font-semibold text-fg">Sequence</h3>
               <Badge tone={mode === "discharge" ? "danger" : "lime"} dot>
                 {MODE_LABEL[mode]}
               </Badge>
@@ -658,7 +665,7 @@ export function CascadeDiagram() {
                       >
                         {s.t}
                       </span>
-                      <span className={cn("mt-1 block text-sm", on ? "text-white" : "text-current")}>
+                      <span className={cn("mt-1 block text-sm", on ? "text-fg" : "text-current")}>
                         {s.title}
                       </span>
                       <span

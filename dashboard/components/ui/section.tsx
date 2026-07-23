@@ -95,7 +95,7 @@ export function Section({
               <div className="max-w-2xl">
                 {eyebrow && <Eyebrow index={index}>{eyebrow}</Eyebrow>}
                 {title && (
-                  <h2 className="mt-5 text-[clamp(1.9rem,4.2vw,3.1rem)] leading-[1.05] text-white text-balance">
+                  <h2 className="mt-5 text-[clamp(1.9rem,4.2vw,3.1rem)] leading-[1.05] text-fg text-balance">
                     {title}
                   </h2>
                 )}
@@ -111,7 +111,7 @@ export function Section({
                   src={icon}
                   alt=""
                   aria-hidden="true"
-                  className="size-20 shrink-0 select-none opacity-90 lg:size-28"
+                  className="section-icon size-20 shrink-0 select-none opacity-90 lg:size-28"
                 />
               )}
             </header>

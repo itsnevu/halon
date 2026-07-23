@@ -6,12 +6,23 @@ libs = ["lib"]
 # Pinned: the README claims 0.8.35 and nothing was enforcing it.
 solc = "0.8.35"
 
+# Optimizer ON — PolicyPool is over the 24576-byte EIP-170 limit unoptimized.
+# Low runs favours smaller deploy bytecode (we optimise for size, not call gas).
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+
 [rpc_endpoints]
-base = "${BASE_RPC_URL}"
-base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+# Robinhood Chain — Arbitrum L2, ETH gas. Public RPCs are rate-limited; set
+# RHC_RPC_URL / RHC_TESTNET_RPC_URL to an Alchemy endpoint for real use.
+robinhood = "${RHC_RPC_URL:-https://rpc.mainnet.chain.robinhood.com}"          # chain 4663
+robinhood_testnet = "${RHC_TESTNET_RPC_URL:-https://rpc.testnet.chain.robinhood.com}"  # chain 46630
 
 [etherscan]
-base = { key = "${BASESCAN_API_KEY}", chain = 8453 }
-base_sepolia = { key = "${BASESCAN_API_KEY}", chain = 84532 }
+# Explorer is Blockscout — verify with:
+#   forge verify-contract --verifier blockscout \
+#     --verifier-url https://<explorer>/api <addr> <Contract>
+robinhood = { key = "${RHC_EXPLORER_API_KEY}", chain = 4663, url = "https://robinhoodchain.blockscout.com/api" }
+robinhood_testnet = { key = "${RHC_EXPLORER_API_KEY}", chain = 46630, url = "https://explorer.testnet.chain.robinhood.com/api" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

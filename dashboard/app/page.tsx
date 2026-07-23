@@ -31,7 +31,7 @@ export default function Page() {
               <div className="font-mono text-[0.625rem] tracking-[0.16em] text-lime uppercase">
                 On-chain collateral
               </div>
-              <h2 className="font-display text-3xl leading-[1.05] font-semibold tracking-tight text-balance text-white md:text-4xl lg:text-5xl">
+              <h2 className="font-display text-3xl leading-[1.05] font-semibold tracking-tight text-balance text-fg md:text-4xl lg:text-5xl">
                 Every policy is backed by{" "}
                 <span className="bg-gradient-to-r from-lime via-spring to-mint bg-clip-text text-transparent">
                   capital that settles itself

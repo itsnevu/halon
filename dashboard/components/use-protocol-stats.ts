@@ -1,7 +1,6 @@
 "use client";
 
 import { useReadContracts } from "wagmi";
-import { PROTOCOL_STATS } from "@/lib/data";
 import type { ProtocolStats } from "@/lib/types";
 import {
   HALON_CHAIN_ID,
@@ -12,15 +11,28 @@ import {
 } from "@/lib/onchain";
 
 /**
- * Returns the protocol headline stats, read live from the PolicyPool when a
- * deployment is wired in (NEXT_PUBLIC_POLICY_POOL) and falling back to the
- * `lib/data.ts` fixture otherwise. `live` says which one you got, so the UI can
- * label itself honestly.
+ * Protocol headline stats, read live from the PolicyPool contract. NO fixtures:
+ * before a deployment is wired in (NEXT_PUBLIC_POLICY_POOL) or before the pool
+ * has any activity, every figure is a real zero — never a fabricated number.
+ * `live` is true once the contract reads succeed.
  *
- * Only the fields the contract actually stores are overlaid — TVL, cover in
- * force, policies, claims paid, premiums, and the derived loss ratio. Narrative
- * fields (agent names, unique buyers, median discharge) stay from the fixture.
+ * Only fields the contract actually stores are populated. Narrative-only fields
+ * (agentsInsured, uniqueBuyers, medianDischargeSeconds) have no on-chain source
+ * yet and are reported as 0 until a registry/indexer backs them.
  */
+const EMPTY_STATS: ProtocolStats = {
+  tvlUsd: 0,
+  activePolicies: 0,
+  coverageInForceUsd: 0,
+  claimsPaidUsd: 0,
+  premiumsEarnedUsd: 0,
+  agentsInsured: 0,
+  uniqueBuyers: 0,
+  medianDischargeSeconds: 0,
+  cascadeRecoveryUsd: 0,
+  lossRatio: 0,
+};
+
 export function useProtocolStats(): { stats: ProtocolStats; live: boolean } {
   const contract = {
     address: POLICY_POOL_ADDRESS,
@@ -35,35 +47,36 @@ export function useProtocolStats(): { stats: ProtocolStats; live: boolean } {
       { ...contract, functionName: "premiumsEarned" },
       { ...contract, functionName: "claimsPaid" },
       { ...contract, functionName: "nextPolicyId" },
+      { ...contract, functionName: "recoveredTotal" },
     ],
     query: { enabled: HAS_DEPLOYMENT, refetchInterval: 15_000 },
   });
 
   if (!HAS_DEPLOYMENT || !data || data.some((r) => r.status !== "success")) {
-    return { stats: PROTOCOL_STATS, live: false };
+    return { stats: EMPTY_STATS, live: false };
   }
 
-  const [total, locked, premiums, claims, nextId] = data.map(
+  const [total, locked, premiums, claims, nextId, recovered] = data.map(
     (r) => r.result as bigint,
   );
 
-  const tvlUsd = fromUsdc(total) ?? PROTOCOL_STATS.tvlUsd;
-  const coverageInForceUsd = fromUsdc(locked) ?? PROTOCOL_STATS.coverageInForceUsd;
-  const premiumsEarnedUsd = fromUsdc(premiums) ?? PROTOCOL_STATS.premiumsEarnedUsd;
-  const claimsPaidUsd = fromUsdc(claims) ?? PROTOCOL_STATS.claimsPaidUsd;
-  const activePolicies = Number(nextId);
-  const lossRatio = premiumsEarnedUsd > 0 ? claimsPaidUsd / premiumsEarnedUsd : 0;
+  const premiumsEarnedUsd = fromUsdc(premiums) ?? 0;
+  const claimsPaidUsd = fromUsdc(claims) ?? 0;
 
   return {
     live: true,
     stats: {
-      ...PROTOCOL_STATS,
-      tvlUsd,
-      coverageInForceUsd,
+      tvlUsd: fromUsdc(total) ?? 0,
+      coverageInForceUsd: fromUsdc(locked) ?? 0,
       premiumsEarnedUsd,
       claimsPaidUsd,
-      activePolicies,
-      lossRatio,
+      activePolicies: Number(nextId),
+      cascadeRecoveryUsd: fromUsdc(recovered) ?? 0,
+      lossRatio: premiumsEarnedUsd > 0 ? claimsPaidUsd / premiumsEarnedUsd : 0,
+      // No on-chain source yet — honest zeros, not fixtures.
+      agentsInsured: 0,
+      uniqueBuyers: 0,
+      medianDischargeSeconds: 0,
     },
   };
 }

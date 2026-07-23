@@ -96,9 +96,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} h-full antialiased`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-ink">
+        {/* Apply the saved theme before paint so there's no flash. Default is dark. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('halon:theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){}",
+          }}
+        />
         {/* Scroll-reveal is progressive enhancement: without JS, show everything. */}
         <noscript>
           <style>{`[data-reveal]{opacity:1!important;transform:none!important;animation:none!important}`}</style>

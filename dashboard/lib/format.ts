@@ -85,6 +85,6 @@ export function secondsLabel(seconds: number): string {
   return seconds < 60 ? `${seconds.toFixed(1)}s` : durationLabel(seconds);
 }
 
-export const BASESCAN = "https://basescan.org";
-export const basescanTx = (hash: string) => `${BASESCAN}/tx/${hash}`;
-export const basescanAddr = (addr: string) => `${BASESCAN}/address/${addr}`;
+// Explorer links live in lib/robinhood-chain.ts, pointed at Robinhood Chain.
+// Re-exported here so `@/lib/format` stays the single import surface.
+export { explorerTx, explorerAddr } from "./robinhood-chain";

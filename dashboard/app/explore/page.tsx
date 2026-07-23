@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/cta-footer";
 import { useProtocolStats } from "@/components/use-protocol-stats";
 import { cn } from "@/lib/cn";
 import { usdCompact } from "@/lib/format";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /* ── live data sources (public, no key, CORS-open) ─────────────────
  * Tokens:  CoinGecko  /coins/markets  → price, FDV, 24h vol, 1h/24h %, sparkline
@@ -31,13 +32,14 @@ type Token = {
   spark: number[]; color: string; cgSlug: string;
 };
 
-// Seed shown instantly on first paint / if a fetch fails — replaced by live data.
+// Which tokens to show + their display config. All market numbers are 0 until
+// the live CoinGecko fetch resolves — no fabricated seed prices are ever shown.
 const SEED_TOKENS: Token[] = [
-  { rank: 1, name: "Ethereum", symbol: "ETH", price: 3422.69, fdv: 224e9, vol: 1.3e9, ch1h: 0.81, ch24h: -0.05, spark: [], color: "#627EEA", cgSlug: "ethereum" },
-  { rank: 2, name: "Wrapped BTC", symbol: "WBTC", price: 64210, fdv: 9.8e9, vol: 320e6, ch1h: -0.12, ch24h: 1.4, spark: [], color: "#F7931A", cgSlug: "wrapped-bitcoin" },
-  { rank: 3, name: "Solana", symbol: "SOL", price: 145.2, fdv: 68.2e9, vol: 850e6, ch1h: 1.2, ch24h: 4.5, spark: [], color: "#14F195", cgSlug: "solana" },
-  { rank: 4, name: "USD Coin", symbol: "USDC", price: 1, fdv: 32.4e9, vol: 900e6, ch1h: 0, ch24h: 0, spark: [], color: "#2775CA", cgSlug: "usd-coin" },
-  { rank: 5, name: "Tether USD", symbol: "USDT", price: 1, fdv: 189.6e9, vol: 1.1e9, ch1h: 0, ch24h: 0.01, spark: [], color: "#26A17B", cgSlug: "tether" },
+  { rank: 1, name: "Ethereum", symbol: "ETH", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#627EEA", cgSlug: "ethereum" },
+  { rank: 2, name: "Wrapped BTC", symbol: "WBTC", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#F7931A", cgSlug: "wrapped-bitcoin" },
+  { rank: 3, name: "Solana", symbol: "SOL", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#14F195", cgSlug: "solana" },
+  { rank: 4, name: "USD Coin", symbol: "USDC", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#2775CA", cgSlug: "usd-coin" },
+  { rank: 5, name: "Tether USD", symbol: "USDT", price: 0, fdv: null, vol: 0, ch1h: 0, ch24h: 0, spark: [], color: "#26A17B", cgSlug: "tether" },
 ];
 
 /* ── formatting ────────────────────────────────────────────────── */
@@ -99,7 +101,7 @@ function Sparkline({ prices, positive, seed }: { prices: number[]; positive: boo
 function EmptyPanel({ label }: { label: string }) {
   return (
     <div className="border border-dashed border-line rounded-2xl py-16 text-center text-mist bg-surface-2/40">
-      <div className="text-sm font-medium text-white mb-1">No live {label} yet</div>
+      <div className="text-sm font-medium text-fg mb-1">No live {label} yet</div>
       <div className="text-xs">This feed connects to on-chain data once the indexer is deployed.</div>
     </div>
   );
@@ -212,10 +214,10 @@ function ExploreContent() {
           {/* TOP STATS ROW */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-10">
             {[
-              { label: "Tracked 24h volume", value: compactUsd(totalVol), sub: `across ${tokens.length} assets`, accent: "#CDFF71" },
-              { label: "HALON TVL", value: usdCompact(protocol.tvlUsd), sub: "PolicyPool reserves", accent: "#61E7C3" },
-              { label: "Base TVL", value: compactUsd(chains.base), sub: "DefiLlama", accent: "#627EEA" },
-              { label: "OP TVL", value: compactUsd(chains.op), sub: "DefiLlama", accent: "#FF0420" },
+              { label: "Tracked 24h volume", value: compactUsd(totalVol), sub: `across ${tokens.length} assets`, accent: "#CDFF71", loading: false },
+              { label: "HALON TVL", value: usdCompact(protocol.tvlUsd), sub: "PolicyPool reserves", accent: "#61E7C3", loading: false },
+              { label: "Base TVL", value: compactUsd(chains.base), sub: "DefiLlama", accent: "#627EEA", loading: chains.base === null },
+              { label: "OP TVL", value: compactUsd(chains.op), sub: "DefiLlama", accent: "#FF0420", loading: chains.op === null },
             ].map((s) => (
               <div
                 key={s.label}
@@ -223,7 +225,11 @@ function ExploreContent() {
               >
                 <span className="absolute inset-x-0 top-0 h-0.5" style={{ backgroundColor: s.accent }} />
                 <div className="mb-2 text-xs font-medium text-mist sm:text-sm">{s.label}</div>
-                <div className="font-display text-2xl tabular-nums text-white sm:text-3xl">{s.value}</div>
+                {s.loading ? (
+                  <Skeleton className="h-8 w-24 sm:h-9" />
+                ) : (
+                  <div className="font-display text-2xl tabular-nums text-fg sm:text-3xl">{s.value}</div>
+                )}
                 <div className="mt-1 text-xs text-mist">{s.sub}</div>
               </div>
             ))}
@@ -232,7 +238,7 @@ function ExploreContent() {
           {/* TOP MOVERS — derived live from the token feed, no hardcoded prices. */}
           {movers.length > 0 && (
             <div className="mb-12">
-              <h2 className="text-2xl font-medium text-white mb-6">Top movers</h2>
+              <h2 className="text-2xl font-medium text-fg mb-6">Top movers</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {movers.map((m) => {
                   const t = m.token;
@@ -251,18 +257,18 @@ function ExploreContent() {
                       </div>
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-white font-medium text-xs shrink-0"
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-fg font-medium text-xs shrink-0"
                           style={{ backgroundColor: t.color }}
                         >
                           {t.symbol.charAt(0)}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-white font-medium truncate">{t.name}</div>
+                          <div className="text-fg font-medium truncate">{t.name}</div>
                           <div className="text-mist text-xs">{t.symbol}</div>
                         </div>
                       </div>
                       <div className="mt-4 flex items-center justify-between">
-                        <span className="text-white font-medium">{priceUsd(t.price)}</span>
+                        <span className="text-fg font-medium">{priceUsd(t.price)}</span>
                         <span className={cn("text-sm", pos ? "text-lime" : "text-danger")}>
                           {pos ? "▲" : "▼"} {Math.abs(t.ch24h).toFixed(2)}%
                         </span>
@@ -277,7 +283,7 @@ function ExploreContent() {
           {/* TOKENS TABLE */}
           <div id="tokens-table">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
-              <h2 className="text-2xl font-medium text-white">Tokens</h2>
+              <h2 className="text-2xl font-medium text-fg">Tokens</h2>
               <span className="text-sm text-mist">
                 {tokens.length} assets{live ? " · refreshes every 30s" : ""}
               </span>
@@ -285,7 +291,7 @@ function ExploreContent() {
 
             {query && (
                   <div className="mb-4 text-sm text-mist">
-                    Showing results for <span className="text-white font-medium">“{query}”</span>
+                    Showing results for <span className="text-fg font-medium">“{query}”</span>
                     {" · "}
                     {visibleTokens.length} match{visibleTokens.length === 1 ? "" : "es"}
                   </div>
@@ -304,7 +310,7 @@ function ExploreContent() {
                           <th className="py-4 px-4 font-normal text-right">1H</th>
                           <th className="py-4 px-4 font-normal text-right">1D</th>
                           <th className="py-4 px-4 font-normal text-right">FDV</th>
-                          <th className="py-4 px-4 font-normal text-right text-white">↓ Volume</th>
+                          <th className="py-4 px-4 font-normal text-right text-fg">↓ Volume</th>
                           <th className="py-4 px-4 font-normal text-right w-32">1D chart</th>
                         </tr>
                       </thead>
@@ -322,18 +328,18 @@ function ExploreContent() {
                               <td className="py-5 px-4">
                                 <div className="flex items-center gap-3">
                                   <div
-                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-xs shrink-0"
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-fg font-medium text-xs shrink-0"
                                     style={{ backgroundColor: token.color }}
                                   >
                                     {token.symbol.charAt(0)}
                                   </div>
                                   <div>
-                                    <div className="text-white font-medium">{token.name}</div>
+                                    <div className="text-fg font-medium">{token.name}</div>
                                     <div className="text-mist text-xs">{token.symbol}</div>
                                   </div>
                                 </div>
                               </td>
-                              <td className="py-5 px-4 text-right text-white">{priceUsd(token.price)}</td>
+                              <td className="py-5 px-4 text-right text-fg">{priceUsd(token.price)}</td>
                               <td className={cn("py-5 px-4 text-right", pos1h ? "text-lime" : "text-danger")}>
                                 {pos1h ? "▲" : "▼"} {Math.abs(token.ch1h).toFixed(2)}%
                               </td>
@@ -341,7 +347,7 @@ function ExploreContent() {
                                 {pos1d ? "▲" : "▼"} {Math.abs(token.ch24h).toFixed(2)}%
                               </td>
                               <td className="py-5 px-4 text-right text-mist">{compactUsd(token.fdv)}</td>
-                              <td className="py-5 px-4 text-right text-white font-medium">{compactUsd(token.vol)}</td>
+                              <td className="py-5 px-4 text-right text-fg font-medium">{compactUsd(token.vol)}</td>
                               <td className="py-5 px-4 text-right">
                                 <div className="flex justify-end opacity-70 group-hover:opacity-100 transition-opacity">
                                   <Sparkline prices={token.spark} positive={pos1d} />

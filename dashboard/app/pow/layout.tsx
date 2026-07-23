@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 
 export default function PoWLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-ink text-white flex flex-col font-sans selection:bg-lime selection:text-black">
+    <div className="min-h-screen bg-ink text-fg flex flex-col font-sans selection:bg-lime selection:text-black">
       <SiteHeader />
       <main className="flex-1 relative">
         {/* Subtle grid background & halo background */}
