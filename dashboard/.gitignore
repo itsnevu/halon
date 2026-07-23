@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local Vercel env import helper (contains keys) — do not commit
+vercel-env.txt

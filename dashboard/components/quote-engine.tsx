@@ -790,23 +790,23 @@ export function QuoteEngine() {
                 <Stat
                   label="Ceded premium"
                   value={usd(q.cededPremiumUsd)}
-                  note="to Bastion Re"
+                  note="to the reinsurer"
                 />
                 <Stat
                   label="Net retention"
                   value={usd(q.netRetentionUsd)}
-                  note="Sentinel's worst case"
+                  note="underwriter's worst case"
                 />
               </div>
 
               <div className="mt-7 space-y-2.5 border-t border-line pt-5 font-mono text-xs">
                 <LeaderRow
-                  label="Sentinel expected margin"
+                  label="Underwriter expected margin"
                   value={usd(q.underwriterMarginUsd)}
                   valueClass={marginTone(q.underwriterMarginUsd)}
                 />
                 <LeaderRow
-                  label="Bastion Re expected margin"
+                  label="Reinsurer expected margin"
                   value={usd(q.reinsurerMarginUsd)}
                   valueClass={marginTone(q.reinsurerMarginUsd)}
                 />

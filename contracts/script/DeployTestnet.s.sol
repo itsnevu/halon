@@ -38,8 +38,10 @@ contract DeployTestnet is Script {
         // 3. Deploy Claims Adjudicator (Layer 2)
         ClaimsAdjudicator adjudicator = new ClaimsAdjudicator(deployer);
 
-        // 4. Deploy HALON Router (Multi-token swapper)
-        HalonRouter router = new HalonRouter(usdcAddr, address(poolA));
+        // 4. Deploy HALON Router (real DEX swap when a router is set; USDC path
+        //    works now, swapRouter=0 until a DEX is live on Robinhood Chain).
+        address swapRouter = vm.envOr("RHC_SWAP_ROUTER", address(0));
+        HalonRouter router = new HalonRouter(usdcAddr, address(poolA), swapRouter);
 
         // 5. Setup Initial State
         // Grant Roles

@@ -212,7 +212,7 @@ export default function ClientDashboard() {
                   type="text" 
                   value={freelancerAddress}
                   onChange={(e) => setFreelancerAddress(e.target.value)}
-                  placeholder="0x70997970C51812dc3A010C7d01b50e0d17dc79C8" 
+                  placeholder="0x…"
                   className="w-full bg-surface border border-line rounded-2xl p-4 text-fg text-sm focus:border-lime outline-none font-mono transition-colors" 
                 />
               </div>

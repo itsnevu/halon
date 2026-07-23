@@ -12,6 +12,7 @@ of truth for addresses + how to ship to production.
 | PolicyPool B (reinsurer) | `0x162A895d77f621Ec40295b9111282CC5CD6E818a` |
 | DynamicRiskEngine | `0xfa0d4FBe6Df23E76A020815Efd2D8728D4F0A61F` |
 | ClaimsAdjudicator | `0xd3fFBdBCadE20F7200aFf2EFfBEb025d9AA11b5a` |
+| HalonRouter (real DEX swap) | `0x20384447A48E833A6a29A3Ee525e630318f6B717` |
 | HALON USDC (6dp) | `0x13FD816D2b558Cea086754C990D722514c004049` |
 | AgentRegistry | `0x3cf8b676B087bAC4b9aEC787C9E47a8eDbDC0a94` |
 | EscrowFactory | `0x9e2C3b999de90b7cE8213da5c62B20A21CD76fdd` |

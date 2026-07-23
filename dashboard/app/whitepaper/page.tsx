@@ -156,7 +156,7 @@ const BLOCKS: Block[] = [
   { t: "h3", title: "5.4 · HalonRouter" },
   {
     t: "p",
-    text: "The buyer's entry point for insuring a cross-chain intent. `routeAndBind` pulls the buyer's token, converts it to the USDC premium the pool needs, approves the pool, and calls `bindDirect` in one transaction, refunding any excess. In the current build the swap is a mock (a production version would call a DEX such as Uniswap V3); the binding path it wraps is real.",
+    text: "The buyer's entry point for insuring a cross-chain intent. `routeAndBind` pulls the buyer's token, converts it to the USDC premium the pool needs, approves the pool, and calls `bindDirect` in one transaction, refunding any excess. The conversion is a real Uniswap-V3 `exactInputSingle` swap when a DEX router is configured; a USDC premium skips the swap. There is no fabricated output — an unconfigured non-USDC swap reverts rather than pretending.",
   },
 
   { t: "h2", id: "risk-model", n: "06", title: "The risk model" },
@@ -365,7 +365,7 @@ Executor FAILS (expired / failed-no-proof):
       "Replace the trusted Watcher with direct on-chain reads of terminal order status (removes the last off-chain trust in the auto-pay path).",
       "Raise attestation `threshold` to k-of-n across independent operators.",
       "Ship the ERC-4626 vault so underwriting capital is a public, share-priced, yield-bearing position (§10).",
-      "Replace `HalonRouter`'s mock swap with a real DEX route.",
+      "Point `HalonRouter` at the canonical DEX router on the target chain to enable non-USDC premiums.",
       "Replace the dispute resolver role with a challenge-window market.",
       "External security review before any value-bearing deployment.",
     ],

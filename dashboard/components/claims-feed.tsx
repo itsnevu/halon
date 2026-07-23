@@ -197,9 +197,9 @@ export function ClaimsFeed() {
 
             <div className="font-mono text-[0.625rem] leading-relaxed text-mist-dim">
               <span className="block">
-                wss:// connectWebSocket<span className="text-lime">()</span>
+                PolicyPool.policy<span className="text-lime">()</span>
               </span>
-              <span className="block text-pretty">subscribed: order_rejected, order_expired</span>
+              <span className="block text-pretty">read on-chain · refetch 15s</span>
             </div>
 
             <div role="group" aria-label="Filter events" className="flex flex-col gap-1">

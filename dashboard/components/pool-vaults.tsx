@@ -98,7 +98,7 @@ function PoolCard({
   const util = stats ? stats.utilizationBps / 10000 : 0;
 
   return (
-    <Panel className="h-full">
+    <Panel className="h-full p-6 md:p-8">
       <div className="flex items-center justify-between gap-3">
         <span className={`font-mono text-[0.625rem] tracking-[0.16em] uppercase ${chrome.chipClass}`}>
           {chrome.chip}
